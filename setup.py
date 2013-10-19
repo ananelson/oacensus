@@ -13,9 +13,10 @@ setup(
             },
         include_package_data = True,
         install_requires = [
-            'dexy',
-            'requests>=2.0.0',
+            'cashew',
             'orcid-python',
+            'python-modargs>=1.7',
+            'requests>=2.0.0'
             ],
         name='oacensus',
         packages=find_packages(),

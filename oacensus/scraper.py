@@ -1,7 +1,4 @@
-from dexy.plugin import Plugin
-from dexy.plugin import PluginMeta
-from oacensus.controller import CACHE_DIR
-from oacensus.controller import WORK_DIR
+from cashew import Plugin, PluginMeta
 import hashlib
 import os
 import shutil
@@ -11,17 +8,27 @@ class Scraper(Plugin):
     Parent class for scrapers.
     """
     __metaclass__ = PluginMeta
-    _settings = {}
-    aliases = []
+
+    def __init__(self, opts):
+        self._opts = opts
 
     def hash_settings(self):
+        """
+        Dictionary of settings which should be used to construct hash.
+        """
         return self.setting_values()
 
     def hashstring(self):
+        """
+        Return hash settings in consistent hashable format.
+        """
         settings = self.hash_settings()
         return ",".join("%s:%s" % (k, settings[k]) for k in sorted(settings))
 
     def hashcode(self):
+        """
+        Turn hash string into hash code.
+        """
         return hashlib.md5(self.hashstring()).hexdigest()
 
     def run(self):
@@ -35,12 +42,21 @@ class Scraper(Plugin):
         self.parse()
 
     def cache_dir(self):
-        return os.path.join(CACHE_DIR, self.hashcode())
+        """
+        Location of this object's cache directory.
+        """
+        return os.path.join(self._opts['cachedir'], self.hashcode())
 
     def work_dir(self):
-        return os.path.join(WORK_DIR, self.hashcode())
+        """
+        Location of this object's work directory.
+        """
+        return os.path.join(self._opts['workdir'], self.hashcode())
 
     def copy_work_dir_to_cache(self):
+        """
+        When work is completed, populated working directory is moved to cache.
+        """
         shutil.move(self.work_dir(), self.cache_dir())
         assert self.is_scraped_content_cached()
 
@@ -51,16 +67,26 @@ class Scraper(Plugin):
         assert os.path.abspath(".") in os.path.abspath(self.cache_dir())
         shutil.rmtree(self.cache_dir(), ignore_errors=True)
 
+    def is_scraped_content_cached(self):
+        return os.path.exists(self.cache_dir())
+
     def reset_work_dir(self):
+        """
+        Remove any old working content and ensure an empty work dir exists.
+        """
         assert os.path.abspath(".") in os.path.abspath(self.work_dir())
         shutil.rmtree(self.work_dir(), ignore_errors=True)
         os.makedirs(self.work_dir())
 
-    def is_scraped_content_cached(self):
-        return os.path.exists(self.cache_dir())
-
     def scrape(self):
-        raise Exception("TODO implement")
+        """
+        Fetch remote data and store it in the local cache.
+        """
+        raise NotImplementedError()
 
     def parse(self):
-        raise Exception("TODO implement")
+        """
+        Working from the local cache, parse data files and make content
+        available for querying.
+        """
+        raise NotImplementedError()

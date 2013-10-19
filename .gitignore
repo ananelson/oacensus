@@ -1,0 +1,7 @@
+*.pyc
+.oacensus
+*.ods*
+*.egg-info
+*.sqlite3
+.coverage
+cover
