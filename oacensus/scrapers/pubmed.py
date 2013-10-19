@@ -1,10 +1,10 @@
+from oacensus.models import Article
 from oacensus.scraper import Scraper
+import datetime
 import os
 import requests
 import time
 import xml.etree.ElementTree as ET
-from oacensus.models import Article, Journal, Publisher, ArticleList, JournalList
-import datetime
 
 class NCBIScraper(Scraper):
     """
@@ -114,7 +114,7 @@ class NCBIScraper(Scraper):
             i += 1
 
     def parse_date(self, entry):
-        if entry:
+        if entry is not None:
             return datetime.date(
                 int(entry.findtext('Year')),
                 int(entry.findtext('Month')),
@@ -157,5 +157,13 @@ class NCBIScraper(Scraper):
                         else:
                             raise Exception("Unrecognized other id '%s'" % other_id_text)
 
-                    print article
                     article.save()
+
+class BreastCancerQuery(NCBIScraper):
+    """
+    Example query which returns small number of results.
+    """
+    aliases = ['bc']
+    _settings = {
+            'search-term' : "science[journal] AND breast cancer AND 2008[pdat]"
+            }
