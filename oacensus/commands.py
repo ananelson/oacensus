@@ -1,4 +1,3 @@
-from ado.model import Model
 from modargs import args
 from oacensus.models import Article, Journal, Publisher, ArticleList, JournalList
 from oacensus.scraper import Scraper
@@ -10,11 +9,11 @@ DEFAULT_COMMAND = 'help'
 MOD = sys.modules[__name__]
 PROG = 'oacensus'
 
+
 defaults = {
-        'cachedir' : '.oacensus/cache/',
-        'workdir' : '.oacensus/work/',
-        'dbfile' : 'data.sqlite3'
-        }
+    'cachedir' : '.oacensus/cache/',
+    'workdir' : '.oacensus/work/'
+}
 
 def run():
     args.parse_and_run_command(sys.argv[1:], MOD, default_command=DEFAULT_COMMAND)
@@ -25,7 +24,6 @@ def help_command(on=False):
 def process_command(
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
         workdir=defaults['workdir'], # Directory to store temp working directories.
-        dbfile=defaults['dbfile'] # Database file.
         ):
 
     pubmed = Scraper.create_instance('pubmed', locals())
@@ -34,11 +32,3 @@ def process_command(
         }
     pubmed.update_settings(settings)
     pubmed.run()
-
-    # conn = initialize_db(dbfile)
-
-def initialize_db(dbfile):
-    if not os.path.exists(dbfile):
-        conn = Model.setup_db(dbfile)
-        Model.setup_tables(conn, [Article, Journal, Publisher, ArticleList, JournalList])
-    return conn

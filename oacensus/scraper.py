@@ -32,7 +32,8 @@ class Scraper(Plugin):
         return hashlib.md5(self.hashstring()).hexdigest()
 
     def run(self):
-        self.remove_cache_dir()
+        print "starting to process '%s'" % self.alias
+        #self.remove_cache_dir()
 
         if not self.is_scraped_content_cached():
             self.reset_work_dir()

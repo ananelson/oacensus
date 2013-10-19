@@ -13,7 +13,8 @@ setup(
             },
         include_package_data = True,
         install_requires = [
-            'cashew',
+            'cashew>=0.2.0',
+            'peewee>=2.0.0',
             'orcid-python',
             'python-modargs>=1.7',
             'requests>=2.0.0'

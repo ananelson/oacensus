@@ -3,6 +3,8 @@ import os
 import requests
 import time
 import xml.etree.ElementTree as ET
+from oacensus.models import Article, Journal, Publisher, ArticleList, JournalList
+import datetime
 
 class NCBIScraper(Scraper):
     """
@@ -13,6 +15,10 @@ class NCBIScraper(Scraper):
             "base-url" : ("Base url of API.", "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/"),
             "ncbi-db" : ("Name of NCBI database to query.", "pubmed"),
             "search-term" : ("Search query to include.", None),
+            "filepattern" : (
+                "Pattern to use for names of files which hold data in cache.",
+                "data_%04d.xml"
+                ),
             "ret-max" : ("Maximum number of entries to return in any single query.", 10000),
             "delay" : ("Time in seconds to delay between API requests.", 1),
             "initial-ret-max" : ("Maximum number of entries to return in the initial query.", 5)
@@ -68,12 +74,12 @@ class NCBIScraper(Scraper):
         return (count, web_env, query_key)
 
     def data_filepath(self, i):
-        return os.path.join(self.work_dir(), "data_%04d.xml" % i)
+        return os.path.join(self.work_dir(), self.setting('filepattern') % i)
 
     def fetch_batch(self, i, retstart, retmax, web_env, query_key):
-        print "waiting..."
+        print "waiting requested delay time..."
         time.sleep(self.setting('delay'))
-        print "Fetching values %s through %s..." % (retstart, retstart+retmax-1)
+        print "fetching values %s through %s..." % (retstart, retstart+retmax-1)
 
         params = {
                 'WebEnv' : web_env,
@@ -107,5 +113,49 @@ class NCBIScraper(Scraper):
             retstart += retmax
             i += 1
 
+    def parse_date(self, entry):
+        if entry:
+            return datetime.date(
+                int(entry.findtext('Year')),
+                int(entry.findtext('Month')),
+                int(entry.findtext('Day'))
+                )
+
     def parse(self):
-        pass
+        for filename in os.listdir(self.cache_dir()):
+            filepath = os.path.join(self.cache_dir(), filename)
+            with open(filepath, 'rb') as f:
+                tree = ET.parse(f)
+                root = tree.getroot()
+                assert root.tag == "PubmedArticleSet"
+                for pubmed_article in root:
+                    assert pubmed_article.tag == "PubmedArticle"
+
+                    pubmed_data = pubmed_article.find("PubmedData")
+                    medline_citation = pubmed_article.find("MedlineCitation")
+                    article_entry = medline_citation.find("Article")
+                    journal_entry = article_entry.find("Journal")
+
+                    assert pubmed_data is not None
+                    assert medline_citation is not None
+                    assert article_entry is not None
+                    assert journal_entry is not None
+
+                    article = Article()
+                    article.pubmed_id = medline_citation.findtext("PMID")
+                    article.title = article_entry.findtext("ArticleTitle")
+                    article.date_published = self.parse_date(article_entry.find("ArticleDate"))
+                    article.date_created = self.parse_date(medline_citation.find("DateCreated"))
+                    article.date_completed = self.parse_date(medline_citation.find("DateCompleted"))
+
+                    for other_id in medline_citation.findall("OtherID"):
+                        other_id_text = other_id.text
+                        if other_id_text.startswith("NIHM"):
+                            article.nihm_id = other_id_text
+                        elif other_id_text.startswith("PMC"):
+                            article.pcm_id = other_id_text
+                        else:
+                            raise Exception("Unrecognized other id '%s'" % other_id_text)
+
+                    print article
+                    article.save()
