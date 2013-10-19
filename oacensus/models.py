@@ -10,15 +10,25 @@ class ModelBase(Model):
 class Journal(ModelBase):
     title = CharField()
     url = CharField(null=True)
-    iso_abbreviation = CharField(null=True)
+
     issn = CharField(null=True)
+    eissn = CharField(null=True)
+    subject = CharField(null=True)
     country = CharField(null=True)
+    language = CharField(null=True)
+    license = CharField(null=True)
+    start_year = IntegerField(null=True)
+
+    iso_abbreviation = CharField(null=True)
     medline_ta = CharField(null=True)
     nlm_unique_id = CharField(null=True)
     issn_linking = CharField(null=True)
 
+    def __unicode__(self):
+        return u"<Journal {0}: {1}>".format(self.issn, self.title)
+
     def __str__(self):
-        return "<Journal: %s>" % self.title
+        return unicode(self).encode('ascii', 'replace')
 
 class Article(ModelBase):
     title = CharField()
@@ -30,8 +40,8 @@ class Article(ModelBase):
     date_created = DateField(null=True)
     date_completed = DateField(null=True)
 
-    def __str__(self):
-        return "<Article: %s>" % self.title
+    def __unicode__(self):
+        return u'{0}'.format(self.title)
 
 class Publisher(ModelBase):
     name = CharField()

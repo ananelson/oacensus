@@ -23,12 +23,12 @@ def help_command(on=False):
     args.help_command(prog, mod, default_command, on)
 
 def run_command(
-        scrapers = ['elsevier', 'biomed', 'bc'], # list of scrapers to run in order
+        scrapers = ['doaj', 'elsevier', 'biomed', 'bc'], # list of scrapers to run in order
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
         workdir=defaults['workdir'], # Directory to store temp working directories.
         ):
 
-    scrapers = ['elsevier']
+    scrapers = ['doaj']
     for alias in scrapers:
         pubmed = Scraper.create_instance(alias, locals())
         pubmed.run()
