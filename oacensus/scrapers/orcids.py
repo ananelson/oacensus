@@ -4,23 +4,25 @@ from oacensus.scraper import Scraper
 import cPickle as pickle
 import orcid
 import os
+import requests
+import json
 
-class Orcid(Scraper):
+class OrcidOAG(Scraper):
     """
-    Scrape article lists based on ORCID.
+    Scrape article lists based on ORCID, then get openness info from OAG.
     """
     aliases = ['orcid']
 
     _settings = {
             'orcid' : ("ORCID of author to process, or a list of ORCIDS.", None),
-            'base-url' : ("Base url", "http://pub.orcid.org/"),
-            'data-file' : ("File to save data under.", "orcid.pickle")
+            'oag-base-url' : ("Base url of OAG API", "http://oag.cottagelabs.com/lookup/"),
+            'orcid-data-file' : ("File to save data under.", "orcid.pickle"),
+            'oag-data-file' : ("File to save data under.", "oag.pickle")
             }
 
     def scrape(self):
         if not self.setting('orcid'):
             raise Exception("Must provide an ORCID.")
-
 
         if isinstance(self.setting('orcid'), basestring):
             orcids = [self.setting('orcid')]
@@ -29,33 +31,56 @@ class Orcid(Scraper):
 
         responses = [orcid.get(orcd) for orcd in orcids]
 
-        filepath = os.path.join(self.work_dir(), self.setting('data-file'))
-        with open(filepath, 'wb') as f:
+        orcid_filepath = os.path.join(self.work_dir(), self.setting('orcid-data-file'))
+        with open(orcid_filepath, 'wb') as f:
             pickle.dump(responses, f)
 
-    def parse_single_orcid_response(self, response):
+        DOIs = [doi.id for doi, pub in self.DOIs(responses)]
+        response = requests.post(self.setting('oag-base-url'), data = json.dumps(DOIs))
+
+        oag_filepath = os.path.join(self.work_dir(), self.setting('oag-data-file'))
+        with open(oag_filepath, 'w') as f:
+            f.write(response.text)
+
+    def DOIs(self, responses):
+        for response in responses:
+            for pub in response.publications:
+                if pub.external_ids:
+                    for ext_id in pub.external_ids:
+                        if ext_id.type == "DOI":
+                            yield (ext_id, pub)
+
+    def parse_single_orcid_response(self, response, license_info):
         args = (response.orcid, response.given_name, response.family_name)
         list_name = "ORCID %s  Author: %s %s" % args
-        article_list = ArticleList.create(name = list_name) 
+        article_list = ArticleList.create(name = list_name, orcid = response.orcid)
 
-        for pub in response.publications:
-            if pub.external_ids:
-                for ext_id in pub.external_ids:
-                    if ext_id.type == "DOI":
-                        article = Article.create_or_update_by_doi({
-                            'doi' : ext_id,
-                            'title' : pub.title
-                            })
+        for doi, pub in self.DOIs([response]):
+            license = license_info[doi.id]
+
+            article = Article.create_or_update_by_doi({
+                'doi' : doi,
+                'title' : pub.title,
+                'open_access' : license[0]['open_access'],
+                'license' : license[0]['title'].strip()
+                })
 
             article_list.add_article(article)
 
         return article_list
 
     def parse(self):
-        filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
-
-        with open(filepath, 'rb') as f:
+        orcid_filepath = os.path.join(self.cache_dir(), self.setting('orcid-data-file'))
+        with open(orcid_filepath, 'rb') as f:
             responses = pickle.load(f)
 
+        oag_filepath = os.path.join(self.cache_dir(), self.setting('oag-data-file'))
+        with open(oag_filepath, 'rb') as f:
+            oag_response = json.load(f)
+
+        license_info_by_doi = {}
+        for oag_result in oag_response['results']:
+            license_info_by_doi[oag_result['identifier'][0]['id']] = oag_result['license']
+
         for response in responses:
-            print self.parse_single_orcid_response(response)
+            print self.parse_single_orcid_response(response, license_info_by_doi)

@@ -4,7 +4,7 @@ from oacensus.models import JournalList
 from oacensus.scraper import Scraper
 import os
 import string
-import urllib2
+import urllib
 
 class ElsevierJournals(Scraper):
     """
@@ -18,18 +18,16 @@ class ElsevierJournals(Scraper):
                 "List of all pages named something other than a letter of the alphabet.",
                 ['other']
                 ),
-            "data-file" : ("file to save data under", "elsevier-journal-list.csv")
+            "data-file" : ("file to save data under", "elsevier-journal-list.html")
             }
 
     def scrape(self):
         pages = [l for l in string.ascii_lowercase] + self.setting('non-alpha-pages')
         for page in pages:
+            print "  fetching page", page
             url = "%s%s" % (self.setting('base-url'), page)
             filepath = os.path.join(self.work_dir(), "data-%s.html" % page)
-            print "loading", url
-            with open(filepath, 'wb') as f:
-                html = urllib2.urlopen(url).read()
-                f.write(html)
+            urllib.urlretrieve(url, filepath)
 
     def parse(self):
         elsevier_list = JournalList(name="Elsevier Journals")

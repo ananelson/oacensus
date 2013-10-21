@@ -36,6 +36,7 @@ class Scraper(Plugin):
         return hashlib.md5(self.hashstring()).hexdigest()
 
     def run(self):
+        print self.cache_dir()
         if not self.is_scraped_content_cached():
             self.reset_work_dir()
             print "  calling scrape method..."

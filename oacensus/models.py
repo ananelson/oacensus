@@ -52,6 +52,8 @@ class Article(ModelBase):
     date_published = DateField(null=True)
     date_created = DateField(null=True)
     date_completed = DateField(null=True)
+    open_access = BooleanField(null=True)
+    license = CharField(null=True)
 
     def __unicode__(self):
         return u'{0}'.format(self.title)
@@ -92,6 +94,7 @@ class JournalListMembership(ModelBase):
 
 class ArticleList(ModelBase):
     name = CharField()
+    orcid = CharField(null=True)
 
     def __str__(self):
         args = (len(self.articles()), self.name)
