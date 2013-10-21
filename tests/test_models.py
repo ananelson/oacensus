@@ -3,6 +3,14 @@ from oacensus.models import Journal
 from oacensus.models import JournalList
 from oacensus.models import JournalListMembership
 
+def test_find_or_create():
+    journal = Journal.create_or_update_by_issn({"issn" : "abc", "title" : "The Journal"})
+    assert journal.id == 1
+    assert journal.title == "The Journal"
+    journal = Journal.create_or_update_by_issn({"issn" : "abc", "title" : "The Updated Journal"})
+    assert journal.title == "The Updated Journal"
+    assert journal.id == 1
+
 def test_article():
     pmid = "ABC1234"
 

@@ -1,4 +1,5 @@
 from cashew import Plugin, PluginMeta
+from oacensus.constants import defaults
 import hashlib
 import os
 import shutil
@@ -9,8 +10,11 @@ class Scraper(Plugin):
     """
     __metaclass__ = PluginMeta
 
-    def __init__(self, opts):
-        self._opts = opts
+    def __init__(self, opts=None):
+        if opts:
+            self._opts = opts
+        else:
+            self._opts = defaults
 
     def hash_settings(self):
         """
@@ -32,14 +36,15 @@ class Scraper(Plugin):
         return hashlib.md5(self.hashstring()).hexdigest()
 
     def run(self):
-        print "starting to process '%s'" % self.alias
-        #self.remove_cache_dir()
-
         if not self.is_scraped_content_cached():
             self.reset_work_dir()
+            print "  calling scrape method..."
             self.scrape()
             self.copy_work_dir_to_cache()
+        else:
+            print "  scraped data is already cached"
 
+        print "  calling parse method..."
         self.parse()
 
     def cache_dir(self):

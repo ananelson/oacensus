@@ -30,6 +30,19 @@ class Journal(ModelBase):
     def __str__(self):
         return unicode(self).encode('ascii', 'replace')
 
+    @classmethod
+    def create_or_update_by_issn(cls, args):
+        try:
+            journal = cls.get(cls.issn == args['issn'])
+            print "found journal", journal, args
+            for k, v in args.iteritems():
+                setattr(journal, k, v)
+            journal.save()
+        except Journal.DoesNotExist:
+            journal = Journal.create(**args)
+
+        return journal
+
 class Article(ModelBase):
     title = CharField()
     journal = ForeignKeyField(Journal, null=True)

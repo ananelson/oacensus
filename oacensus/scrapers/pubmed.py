@@ -1,3 +1,4 @@
+from oacensus.exceptions import APIError
 from oacensus.models import Article
 from oacensus.scraper import Scraper
 import datetime
@@ -64,6 +65,10 @@ class NCBIScraper(Scraper):
                 )
 
         root = ET.fromstring(result.text)
+    
+        error = root.find("ERROR")
+        if error is not None:
+            raise APIError(error.text)
 
         count = int(root.find("Count").text)
         web_env = root.find("WebEnv").text
