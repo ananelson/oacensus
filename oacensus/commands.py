@@ -1,6 +1,7 @@
 from modargs import args
 from oacensus.constants import defaults
 from oacensus.scraper import Scraper
+from oacensus.report import Report
 import sys
 import yaml
 
@@ -42,6 +43,7 @@ def scrapers_command():
     print "\n"
 
 def run_command(
+        reports=defaults['reports'], # Reports to run.
         config=defaults['config'], # YAML file to read configuration from.
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
         workdir=defaults['workdir'], # Directory to store temp working directories.
@@ -80,3 +82,7 @@ def run_command(
         scraper = Scraper.create_instance(alias, locals())
         scraper.update_settings(settings)
         scraper.run()
+
+    for report_alias in reports.split():
+        report = Report.create_instance(report_alias)
+        report.run()

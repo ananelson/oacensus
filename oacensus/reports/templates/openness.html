@@ -1,0 +1,11 @@
+<h2>Openness Report</h2>
+
+{% for al in article_lists %}
+<h3>{{ al.name }}</h3>
+<ul>
+{% for article in al.articles() %}
+<li>{{ article }}</li>
+{% endfor %}
+</ul>
+
+{% endfor %}
