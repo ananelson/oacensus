@@ -34,7 +34,6 @@ class Journal(ModelBase):
     def create_or_update_by_issn(cls, args):
         try:
             journal = cls.get(cls.issn == args['issn'])
-            print "found journal", journal, args
             for k, v in args.iteritems():
                 setattr(journal, k, v)
             journal.save()
@@ -46,6 +45,7 @@ class Journal(ModelBase):
 class Article(ModelBase):
     title = CharField()
     journal = ForeignKeyField(Journal, null=True)
+    doi = CharField(null=True)
     pubmed_id = CharField(null=True)
     nihm_id = CharField(null=True)
     pmc_id = CharField(null=True)
@@ -55,6 +55,18 @@ class Article(ModelBase):
 
     def __unicode__(self):
         return u'{0}'.format(self.title)
+
+    @classmethod
+    def create_or_update_by_doi(cls, args):
+        try:
+            article = cls.get(cls.doi == args['doi'])
+            for k, v in args.iteritems():
+                setattr(article, k, v)
+            article.save()
+        except Article.DoesNotExist:
+            article = Article.create(**args)
+
+        return article
 
 class Publisher(ModelBase):
     name = CharField()
@@ -81,9 +93,26 @@ class JournalListMembership(ModelBase):
 class ArticleList(ModelBase):
     name = CharField()
 
+    def __str__(self):
+        args = (len(self.articles()), self.name)
+        return "<Article List (%s articles): %s>" % args
+
+    def add_article(self, article):
+        ArticleListMembership(
+            article_list = self,
+            article = article).save()
+
+    def articles(self):
+        return [membership.article for membership in self.memberships]
+
+class ArticleListMembership(ModelBase):
+    article_list = ForeignKeyField(ArticleList, related_name="memberships")
+    article = ForeignKeyField(Article, related_name="memberships")
+
 Article.create_table()
-Journal.create_table()
-Publisher.create_table()
 ArticleList.create_table()
+ArticleListMembership.create_table()
+Journal.create_table()
 JournalList.create_table()
 JournalListMembership.create_table()
+Publisher.create_table()

@@ -14,7 +14,7 @@ s = '    '
 
 def run():
     """
-    Calls python modargs.
+    Main entry point. Calls python modargs to run the requested command.
     """
     args.parse_and_run_command(sys.argv[1:], mod, default_command=default_command)
 
