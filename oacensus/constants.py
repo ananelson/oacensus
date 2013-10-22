@@ -1,7 +1,7 @@
 dbfile = ':memory:'
 
 defaults = {
-    'reports' : [],
+    'reports' : '',
     'config' : 'oacensus.yaml',
     'cachedir' : '.oacensus/cache/',
     'workdir' : '.oacensus/work/'

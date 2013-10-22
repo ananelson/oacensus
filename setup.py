@@ -18,7 +18,8 @@ setup(
             'orcid-python',
             'peewee>=2.0.0',
             'python-modargs>=1.7',
-            'requests>=2.0.0'
+            'requests>=2.0.0',
+            'xlrd'
             ],
         name='oacensus',
         packages=find_packages(),
