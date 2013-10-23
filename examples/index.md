@@ -1,0 +1,94 @@
+## General Usage
+
+This tool consists of several configurable data scrapers and parsers, and also
+configurable reporting tools.
+
+Scraping is handled in a separate step from parsing, and scraped pages are
+stored in a cache.
+
+Many parsers work on the data provided from previous parsers, so you need to
+take into consideration the ordering of parsers.
+
+
+## Use Cases
+
+### Institutional Open Access Census
+
+A librarian at Oxford University wishes to understand the amount of Open Access
+content, as defined in different ways, in the research they publish. They first
+need to create a list of research articles published from Oxford University.
+They use PubMed and CrossRef as sources of articles that provide affiliation
+information to generate the list of article DOIs. For each article they then
+wish to ask: a) Is this in an Open Access Journal (using DOAJ) b) Does the
+article have an open license (OAG) and c) Is the article in one of the
+following repositories (PMC/EuropePMC, OpenAIRE, the Oxford Institutional
+repository[1]). They aim to provide a report on this once a month.
+
+[1] Most IRs can be searched via a standard protocol OAI-PMH. It would be
+reasonable to ask the user to supply the appropriate URL for the API endpoint
+
+#### PubMed Articles
+
+We'll retrieve a list of articles where the affiliation is Oxford University.
+
+To determine how to configure the pubmed query, we first review the docs for
+the `pubmed` scraper:
+
+{{ d['example1.sh|idio|shint|pyg']['scraper-docs'] }}
+
+We only need to specify the `search` parameter:
+
+{{ d['example1.yaml|idio']['pubmed'] }}
+
+#### DOAJ metadata
+
+The `doaj` scraper fetches the full listing of open access journals from DOAJ.
+
+Then, any journals in the database matching DOAJ ISSNs are updated with DOAJ
+information about openness and license information.
+
+We don't need to set any parameters:
+
+{{ d['example1.yaml|idio']['doaj'] }}
+
+#### OAG Licensing Information
+
+The OAG service provides licensing information based on a DOI.
+
+#### Running the Example
+
+{{ d['example1.sh|idio|shint|pyg']['run-example'] }}
+
+### Individual Openness Report
+
+A researcher wishes to provide a report demonstrating that they are a good
+citizen in generating open content. They use their ORCID profile as a source of
+article information. For each article they wish to show that it is either
+available at the publisher website freely to read[2] or is in either PMC or
+their institutional repository.
+
+[2] "free-to-read" is a metadata element that Crossref will be shortly rolling
+out. It doesn't yet exist and will take some time to reach critical mass.
+
+{{ d['example2.yaml|pyg'] }}
+
+### Topic Openness Report
+
+A patient advocate wants to understand how much content related to their
+disease is available. They search PubMed to identify a set of articles and a
+comparison set for a different disease. They then wish to know what proportion
+of articles are free to read via the publisher[2], available in PubMedCentral,
+and available openly licensed.
+
+
+### RCUK Policy Compliance Report
+
+A UK funder wishes to report on RCUK policy compliance. They use Gateway to
+Research to generate a list of publications relating to their funding.
+Compliance is provided via two routes. If the article is OA through the
+publisher website it must have a CC BY license (OAG) or it must be made
+available through a repository. The funder elects to search PMC, OpenAIRE, and
+a UK federated institutional repository search tool[3] to identify copies in
+repositories.
+
+

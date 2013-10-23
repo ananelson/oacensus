@@ -1,15 +1,12 @@
 from bs4 import BeautifulSoup
-from oacensus.models import Journal
-from oacensus.models import JournalList
-from oacensus.models import Publisher
 from oacensus.scraper import Scraper
-import base64
+import glob
+import hashlib
 import json
 import os
 import re
 import string
 import urllib
-import glob
 
 class ElsevierJournals(Scraper):
     """
@@ -28,7 +25,6 @@ class ElsevierJournals(Scraper):
 
     def scrape(self):
         pages = [l for l in string.ascii_lowercase] + self.setting('non-alpha-pages')
-        pages = ['v']
         for page in pages:
             print "  fetching page", page
             url = "%s%s" % (self.setting('base-url'), page)
@@ -56,14 +52,18 @@ class ElsevierJournals(Scraper):
                         issn_found = True
                         print "  found issn", issn, "in url", journal_url
                     else:
-                        journal_filename = base64.b64encode(journal_url)
+                        journal_filename = hashlib.md5(journal_url).hexdigest()
                         journal_filepath = os.path.join(self.work_dir(), journal_filename)
 
                         n = 5
 
                         for i in range(1, n):
                             print "  fetching", journal_url, "attempt", i
-                            urllib.urlretrieve(journal_url, journal_filepath)
+
+                            try:
+                                urllib.urlretrieve(journal_url, journal_filepath)
+                            except IOError:
+                                continue
 
                             with open(journal_filepath, 'rb') as f:
                                 journal_soup = BeautifulSoup(f)
@@ -94,6 +94,8 @@ class ElsevierJournals(Scraper):
             yield anchor
 
     def parse(self):
+        from oacensus.models import JournalList
+        from oacensus.models import Publisher
         elsevier_list = JournalList.create(name="Elsevier Journals")
         publisher = Publisher.create(name="Elsevier")
 
@@ -124,7 +126,7 @@ class ElsevierJournals(Scraper):
                     issn = m.groups()[0]
 
                 else:
-                    journal_filename = base64.b64encode(journal_url)
+                    journal_filename = hashlib.md5(journal_url).hexdigest()
                     journal_filepath = os.path.join(self.cache_dir(), journal_filename)
 
                     with open(journal_filepath, 'rb') as f:
@@ -135,7 +137,7 @@ class ElsevierJournals(Scraper):
                             raise Exception("no ISSN found in %s" % issn_div.text)
                         issn = issn_div.text.replace("ISSN:", "").strip()
 
-                print "  creating journal with issn", issn, anchor.text.strip()
+                from oacensus.models import Journal
                 journal = Journal.create(
                         source=self.alias,
                         title = anchor.text.strip(),

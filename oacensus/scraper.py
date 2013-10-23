@@ -1,5 +1,5 @@
 from cashew import Plugin, PluginMeta
-from oacensus.constants import defaults
+from oacensus.utils import defaults
 import hashlib
 import os
 import shutil
@@ -15,6 +15,10 @@ class Scraper(Plugin):
             self._opts = opts
         else:
             self._opts = defaults
+
+    def print_progress(self, msg):
+        if self._opts['progress']:
+            print msg
 
     def hash_settings(self):
         """

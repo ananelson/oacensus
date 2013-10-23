@@ -1,0 +1,9 @@
+examples/index.md|jinja|markdown|easyhtml:
+    - examples
+
+examples:
+    - examples/*.sh|idio|shint|pyg:
+        - shint: { timeout: 100 }
+        - .yaml
+    - examples/*.yaml|idio
+    - examples/*.yaml|pyg

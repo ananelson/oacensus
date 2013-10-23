@@ -1,5 +1,4 @@
 from oacensus.exceptions import APIError
-from oacensus.models import Article
 from oacensus.scraper import Scraper
 import datetime
 import os
@@ -7,15 +6,15 @@ import requests
 import time
 import xml.etree.ElementTree as ET
 
-class NCBIScraper(Scraper):
+class NCBI(Scraper):
     """
-    Scraper for NCBI resources, including pubmed.
+    Base class for scrapers querying NCBI databases (including pubmed).
     """
-    aliases = ['ncbi', 'pubmed']
+    aliases = []
     _settings = {
             "base-url" : ("Base url of API.", "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/"),
-            "ncbi-db" : ("Name of NCBI database to query.", "pubmed"),
-            "search-term" : ("Search query to include.", None),
+            "ncbi-db" : ("Name of NCBI database to query.", None),
+            "search" : ("Search query to include.", None),
             "filepattern" : (
                 "Pattern to use for names of files which hold data in cache.",
                 "data_%04d.xml"
@@ -54,7 +53,7 @@ class NCBIScraper(Scraper):
         will be used to fetch the full results.
         """
         params = {
-                'term' : self.setting('search-term'),
+                'term' : self.setting('search'),
                 'usehistory' : 'y',
                 'retMax' : self.setting('initial-ret-max')
                 }
@@ -82,9 +81,10 @@ class NCBIScraper(Scraper):
         return os.path.join(self.work_dir(), self.setting('filepattern') % i)
 
     def fetch_batch(self, i, retstart, retmax, web_env, query_key):
-        print "waiting requested delay time..."
+        self.print_progress("waiting requested delay time...")
         time.sleep(self.setting('delay'))
-        print "fetching values %s through %s..." % (retstart, retstart+retmax-1)
+        msg = "fetching values %s through %s..." % (retstart, retstart+retmax-1)
+        self.print_progress(msg)
 
         params = {
                 'WebEnv' : web_env,
@@ -126,7 +126,25 @@ class NCBIScraper(Scraper):
                 int(entry.findtext('Day'))
                 )
 
+class Pubmed(NCBI):
+    """
+    Creates a single ArticleList and individual Article objects for all
+    articles returned from pubmed matching the [required] search query.
+    """
+    aliases = ['pubmed']
+    _settings = {
+            "ncbi-db" : "pubmed"
+            }
+
     def parse(self):
+        from oacensus.models import ArticleList
+        from oacensus.models import Article
+        from oacensus.models import Journal
+
+        article_list = ArticleList.create(
+                name = "pubmed search: %s" % self.setting('search')
+                )
+
         for filename in os.listdir(self.cache_dir()):
             filepath = os.path.join(self.cache_dir(), filename)
             with open(filepath, 'rb') as f:
@@ -141,34 +159,66 @@ class NCBIScraper(Scraper):
                     article_entry = medline_citation.find("Article")
                     journal_entry = article_entry.find("Journal")
 
-                    assert pubmed_data is not None
-                    assert medline_citation is not None
-                    assert article_entry is not None
-                    assert journal_entry is not None
+                    # Parse journal info
+                    journal_title = journal_entry.findtext("Title")
+                    journal_iso = journal_entry.findtext("ISOAbbreviation")
+                    issn_entry = journal_entry.find("ISSN")
+                    issn_type = issn_entry.get("IssnType")
+                    if issn_type == "Electronic":
+                        issn = issn_entry.text
+                        eissn = issn_entry.text
+                    else:
+                        issn = issn_entry.text
+                        eissn = None
 
-                    article = Article()
-                    article.pubmed_id = medline_citation.findtext("PMID")
-                    article.title = article_entry.findtext("ArticleTitle")
-                    article.date_published = self.parse_date(article_entry.find("ArticleDate"))
-                    article.date_created = self.parse_date(medline_citation.find("DateCreated"))
-                    article.date_completed = self.parse_date(medline_citation.find("DateCompleted"))
+                    journal = Journal.create_or_update_by_issn({
+                        'issn' : issn,
+                        'title' : journal_title,
+                        'source' : self.alias
+                        })
 
+                    # Parse article info
+
+                    title = article_entry.findtext("ArticleTitle")
+                    date_published = self.parse_date(article_entry.find("ArticleDate"))
+
+                    doi_entry = article_entry.find("ELocationID")
+
+                    doi = None
+                    if doi_entry is not None:
+                        eid_type = doi_entry.get("EIdType")
+                        if eid_type == 'doi':
+                            doi = doi_entry.text
+
+                    if not doi:
+                        print "  no doi for", title
+
+                    pubmed_id = medline_citation.findtext("PMID")
+
+                    nihm_id = None
+                    pcm_id = None
                     for other_id in medline_citation.findall("OtherID"):
                         other_id_text = other_id.text
                         if other_id_text.startswith("NIHM"):
-                            article.nihm_id = other_id_text
+                            nihm_id = other_id_text
                         elif other_id_text.startswith("PMC"):
-                            article.pcm_id = other_id_text
+                            pcm_id = other_id_text
                         else:
-                            raise Exception("Unrecognized other id '%s'" % other_id_text)
+                            print "  ignoring other id ", other_id_text
 
-                    article.save()
+                    assert title is not None
 
-class BreastCancerQuery(NCBIScraper):
-    """
-    Example query which returns small number of results.
-    """
-    aliases = ['bc']
-    _settings = {
-            'search-term' : "science[journal] AND breast cancer AND 2008[pdat]"
-            }
+                    article = Article.create(
+                            title = title,
+                            source = self.alias,
+                            doi = doi,
+                            journal = journal,
+                            date_published = date_published,
+                            pubmed_id = pubmed_id,
+                            nihm_id = nihm_id,
+                            pcm_id = pcm_id
+                            )
+
+                    article_list.add_article(article)
+
+        print article_list

@@ -1,9 +1,6 @@
 from bs4 import BeautifulSoup
-from oacensus.models import Journal
-from oacensus.models import JournalList
-from oacensus.models import Publisher
 from oacensus.scraper import Scraper
-import base64
+import hashlib
 import os
 import urllib
 
@@ -30,7 +27,7 @@ class BiomedCentralJournals(Scraper):
 
         for anchor in self.journal_list_iter(soup):
             journal_url = anchor.get('href')
-            journal_filename = base64.b64encode(journal_url)
+            journal_filename = hashlib.md5(journal_url).hexdigest()
             journal_filepath = os.path.join(self.work_dir(), journal_filename)
 
             issn_found = False
@@ -68,6 +65,10 @@ class BiomedCentralJournals(Scraper):
             yield anchor
 
     def parse(self):
+        from oacensus.models import Journal
+        from oacensus.models import JournalList
+        from oacensus.models import Publisher
+
         filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
 
         with open(filepath, 'rb') as f:
@@ -78,8 +79,8 @@ class BiomedCentralJournals(Scraper):
 
         for anchor in self.journal_list_iter(soup):
             journal_url = anchor.get('href')
-            print "  parsing", journal_url
-            journal_filename = base64.b64encode(journal_url)
+            self.print_progress("  parsing %s" % journal_url)
+            journal_filename = hashlib.md5(journal_url).hexdigest()
             journal_filepath = os.path.join(self.cache_dir(), journal_filename)
 
             with open(journal_filepath, 'rb') as f:

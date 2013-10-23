@@ -1,0 +1,9 @@
+# oacensus config file
+#- elsevier
+- wiley
+- biomed
+  #- doaj
+  #- scimago
+
+#- pubmed:
+#    search-term: "science[journal] AND breast cancer AND 2009[pdat]"

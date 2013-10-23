@@ -1,9 +1,15 @@
 from peewee import *
-from oacensus.constants import dbfile
+import sqlite3
 
-db = SqliteDatabase(dbfile)
+from oacensus.db import db
 
 class ModelBase(Model):
+    def truncate_title(self, length=40):
+        if len(self.title) < length:
+            return self.title
+        else:
+            return self.title[0:length] + "..."
+
     class Meta:
         database = db
 
@@ -14,7 +20,7 @@ class Journal(ModelBase):
     title = CharField()
     url = CharField(null=True)
     publisher = ForeignKeyField(Publisher, null=True)
-    source = CharField()
+    source = CharField() # where journal data was obtained from
     issn = CharField(null=True)
     eissn = CharField(null=True)
 
@@ -33,7 +39,7 @@ class Journal(ModelBase):
     issn_linking = CharField(null=True)
 
     def __unicode__(self):
-        return u"<Journal {0}: {1}>".format(self.issn, self.title)
+        return u"<Journal {0} [{1}]: {2}>".format(self.id, self.issn, self.truncate_title())
 
     def __str__(self):
         return unicode(self).encode('ascii', 'replace')
@@ -43,7 +49,8 @@ class Journal(ModelBase):
         try:
             journal = cls.get(cls.issn == args['issn'])
             for k, v in args.iteritems():
-                setattr(journal, k, v)
+                if k != 'source':
+                    setattr(journal, k, v)
             journal.save()
         except Journal.DoesNotExist:
             journal = Journal.create(**args)
@@ -59,19 +66,22 @@ class Journal(ModelBase):
 
 class Article(ModelBase):
     title = CharField()
-    journal = ForeignKeyField(Journal, null=True)
     doi = CharField(null=True)
+    date_published = DateField(null=True)
+    source = CharField()
+    journal = ForeignKeyField(Journal, null=True)
+
     pubmed_id = CharField(null=True)
     nihm_id = CharField(null=True)
     pmc_id = CharField(null=True)
-    date_published = DateField(null=True)
-    date_created = DateField(null=True)
-    date_completed = DateField(null=True)
+
+    free_to_read = BooleanField(null=True)
     open_access = BooleanField(null=True)
+    open_access_source = CharField(null=True)
     license = CharField(null=True)
 
     def __unicode__(self):
-        return u'{0}'.format(self.title)
+        return u'{0}'.format(self.truncate_title())
 
     @classmethod
     def create_or_update_by_doi(cls, args):
@@ -88,9 +98,9 @@ class Article(ModelBase):
 class JournalList(ModelBase):
     name = CharField()
 
-    def __str__(self):
+    def __unicode__(self):
         args = (len(self.journals()), self.name)
-        return "<Journal List (%s journals): %s>" % args
+        return u"<Journal List {0}: {1}>".format(*args)
 
     def add_journal(self, journal):
         JournalListMembership(
@@ -108,9 +118,9 @@ class ArticleList(ModelBase):
     name = CharField()
     orcid = CharField(null=True)
 
-    def __str__(self):
+    def __unicode__(self):
         args = (len(self.articles()), self.name)
-        return "<Article List (%s articles): %s>" % args
+        return u"<Article List {0}: {1}>".format(*args)
 
     def add_article(self, article):
         ArticleListMembership(
@@ -124,10 +134,13 @@ class ArticleListMembership(ModelBase):
     article_list = ForeignKeyField(ArticleList, related_name="memberships")
     article = ForeignKeyField(Article, related_name="memberships")
 
-Article.create_table()
-ArticleList.create_table()
-ArticleListMembership.create_table()
-Journal.create_table()
-JournalList.create_table()
-JournalListMembership.create_table()
-Publisher.create_table()
+try:
+    Article.create_table()
+    ArticleList.create_table()
+    ArticleListMembership.create_table()
+    Journal.create_table()
+    JournalList.create_table()
+    JournalListMembership.create_table()
+    Publisher.create_table()
+except sqlite3.OperationalError:
+    pass

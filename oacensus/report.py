@@ -1,5 +1,5 @@
 from cashew import Plugin, PluginMeta
-from oacensus.constants import defaults
+from oacensus.utils import defaults
 
 class Report(Plugin):
     """

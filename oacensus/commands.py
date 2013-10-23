@@ -1,11 +1,12 @@
 from modargs import args
-from oacensus.constants import defaults
-from oacensus.constants import dbfile
-from oacensus.scraper import Scraper
+from oacensus.exceptions import UserFeedback
+from oacensus.db import db
 from oacensus.report import Report
+from oacensus.scraper import Scraper
+from oacensus.utils import defaults
+import os
 import sys
 import yaml
-import os
 
 default_command = 'help'
 mod = sys.modules[__name__]
@@ -19,18 +20,33 @@ def run():
     """
     Main entry point. Calls python modargs to run the requested command.
     """
-    args.parse_and_run_command(sys.argv[1:], mod, default_command=default_command)
+    try:
+        args.parse_and_run_command(sys.argv[1:], mod, default_command=default_command)
+    except UserFeedback as e:
+        sys.stderr.write("An %s has occurred. Stopping." % e.__class__.__name__)
+        sys.stderr.write(str(e) + "\n")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        sys.stderr.write("interrupted!\n")
+        sys.exit(1)
 
 def help_command(on=False):
     args.help_command(prog, mod, default_command, on)
 
-def scrapers_command():
+def scrapers_command(
+        alias = '' # Optionally, only print help for the specified alias.
+        ):
     """
     List the available scraper plugins.
     """
     nodoc = ['aliases', 'help']
 
-    for instance in Scraper:
+    if alias:
+        instances = [Scraper.create_instance(alias)]
+    else:
+        instances = Scraper
+
+    for instance in instances:
         print "\n"
         print s, "alias:", instance.alias
         for line in instance.setting('help').splitlines():
@@ -45,14 +61,21 @@ def scrapers_command():
     print "\n"
 
 def run_command(
+        dbfile=defaults['dbfile'], # Name of sqlite db file.
+        progress=defaults['progress'], # Whether to show progress indicators.
         reports=defaults['reports'], # Reports to run.
         config=defaults['config'], # YAML file to read configuration from.
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
         workdir=defaults['workdir'], # Directory to store temp working directories.
         ):
 
+    if not os.path.exists(config):
+        raise UserFeedback("Please provide a config file named '%s' or use --config option to specify a different filename." % config)
+
     with open(config, 'r') as f:
         conf = yaml.safe_load(f.read())
+
+    db.init(dbfile)
 
     for item in conf:
         if isinstance(item, basestring):
@@ -90,9 +113,13 @@ def run_command(
         report.run()
 
 def reports_command(
+        dbfile = defaults['dbfile'], # db file to use for reports
         reports = defaults['reports'], # reports to run
         ):
+    if not reports:
+        print "Please specify some reports to run."
 
+    db.init(dbfile)
     for report_alias in reports.split():
         report = Report.create_instance(report_alias)
         report.run()

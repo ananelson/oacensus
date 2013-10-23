@@ -1,14 +1,13 @@
 from bs4 import BeautifulSoup
-from oacensus.models import Journal
 from oacensus.scraper import Scraper
+import codecs
+import os
 import re
 import requests
-import os
-import codecs
 
 class DoajJournals(Scraper):
     """
-    Scrape journal info from DOAJ website.
+    Updates journals in the database with openness information from DOAJ.
     """
     aliases = ['doaj']
 
@@ -24,7 +23,7 @@ class DoajJournals(Scraper):
         """
         Scrape the initial page to determine how many total pages there are.
         """
-        print "determining number of pages..."
+        self.print_progress("determining number of pages...")
         result = requests.get(
                 self.setting('base-url'),
                 params = self.setting('standard-params')
@@ -43,7 +42,7 @@ class DoajJournals(Scraper):
         n = self.number_of_pages()
 
         for page_index in range(n):
-            print "processing page", page_index+1, "of", n
+            self.print_progress("processing page %s of %s" % (page_index+1, n))
 
             params = { 'page' : page_index+1 }
             params.update(self.setting('standard-params'))
@@ -57,16 +56,19 @@ class DoajJournals(Scraper):
                 f.write(result.text)
 
     def parse(self):
+        from oacensus.models import Journal
+
         for filename in os.listdir(self.cache_dir()):
             filepath = os.path.join(self.cache_dir(), filename)
-            print "found", filepath
+            self.print_progress("found %s" % filepath)
 
             with codecs.open(filepath, 'rb', encoding="utf-8") as f:
                 soup = BeautifulSoup(f)
 
                 entries_per_page = 100
                 for i in range(1, entries_per_page):
-                    print "  processing journal", i
+                    if i % 10 == 0:
+                        self.print_progress("  processing journal %s" % i)
 
                     select = "#record%s" % i
                     records = soup.select(select)
@@ -84,10 +86,9 @@ class DoajJournals(Scraper):
                     assert issn_label.text == "ISSN/EISSN"
                     issn_data = issn_label.next_sibling.strip().split(" ")
                     assert issn_data[0] == u':'
-                    journal_issn = issn_data[1]
+                    journal_issn = "%s-%s" % (issn_data[1][0:4], issn_data[1][4:8])
                     if len(issn_data) == 3:
-                        journal_eissn = issn_data[2]
-
+                        journal_eissn = "%s-%s" % (issn_data[2][0:4], issn_data[2][4:8])
 
                     if len(data.find_all("strong")) > 1:
                         subject_label = data.find_all("strong")[1]
@@ -116,13 +117,7 @@ class DoajJournals(Scraper):
 
                     journal = Journal.by_issn(journal_issn)
                     if journal:
-                        print "found matching journal", journal
                         journal.open_access = True
                         journal.open_access_source = self.alias
                         journal.license = journal_license
                         journal.save()
-
-                    #print "country", journal_country
-                    #print "language", journal_language
-                    #print "subject", journal_subject
-                    #print "start_year", journal_start_year

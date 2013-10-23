@@ -1,6 +1,3 @@
-from oacensus.models import Journal
-from oacensus.models import JournalList
-from oacensus.models import Publisher
 from oacensus.scraper import Scraper
 import os
 import urllib
@@ -22,6 +19,10 @@ class WileyScraper(Scraper):
         urllib.urlretrieve(self.setting('url'), filepath)
 
     def parse(self):
+        from oacensus.models import JournalList
+        from oacensus.models import Publisher
+        from oacensus.models import Journal
+
         filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
 
         wb = xlrd.open_workbook(filepath, on_demand=True)

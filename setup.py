@@ -15,8 +15,10 @@ setup(
         install_requires = [
             'beautifulsoup4',
             'cashew>=0.2.0',
+            'inflection',
             'orcid-python',
             'peewee>=2.0.0',
+            'pyoai>=2.4.4',
             'python-modargs>=1.7',
             'requests>=2.0.0',
             'xlrd'

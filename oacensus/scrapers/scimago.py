@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-from oacensus.models import Journal
 from oacensus.scraper import Scraper
 import requests
 import os
@@ -46,6 +45,8 @@ class ScimagoJournals(Scraper):
                 f.write(block)
 
     def parse(self):
+        from oacensus.models import Journal
+
         filepath = os.path.join(self.cache_dir(), self.setting('filename'))
 
         with open(filepath, 'rb') as f:
@@ -69,14 +70,19 @@ class ScimagoJournals(Scraper):
             else:
                 cells = row.find_all("td")
 
-                params = {
-                        'title' : cells[1].text.strip(),
-                        'issn' : cells[2].text.strip("=\""),
-                        'country' : cells[12].text.strip()
-                        }
+                issn = cells[2].text.strip("=\"")
+                journal = Journal.by_issn(issn)
+                if journal:
+                    print "found matching journal", journal
 
-                if params['issn'] != '0':
-                    Journal.create_or_update_by_issn(params)
+                #params = {
+                #        'title' : cells[1].text.strip(),
+                #        'issn' : cells[2].text.strip("=\""),
+                #        'country' : cells[12].text.strip()
+                #        }
+
+                #if params['issn'] != '0':
+                #    Journal.create_or_update_by_issn(params)
 
 
 #row is <tr><td>20544</td><td>Zoologische Mededelingen</td><td>="18762174"</td><td>0,000</td><td>0</td><td>1</td><td>0</td><td>18</td><td>0</td><td>0</td><td>0,00</td><td>18,00</td><td>Netherlands</td></tr>
