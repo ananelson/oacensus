@@ -6,17 +6,25 @@ db = SqliteDatabase(dbfile)
 class ModelBase(Model):
     class Meta:
         database = db
-            
+
+class Publisher(ModelBase):
+    name = CharField()
+
 class Journal(ModelBase):
     title = CharField()
     url = CharField(null=True)
-
+    publisher = ForeignKeyField(Publisher, null=True)
+    source = CharField()
     issn = CharField(null=True)
     eissn = CharField(null=True)
+
+    open_access = BooleanField(null=True)
+    open_access_source = CharField(null=True)
+    license = CharField(null=True)
+
     subject = CharField(null=True)
     country = CharField(null=True)
     language = CharField(null=True)
-    license = CharField(null=True)
     start_year = IntegerField(null=True)
 
     iso_abbreviation = CharField(null=True)
@@ -41,6 +49,13 @@ class Journal(ModelBase):
             journal = Journal.create(**args)
 
         return journal
+
+    @classmethod
+    def by_issn(cls, issn):
+        try:
+            return cls.get(cls.issn == issn)
+        except Journal.DoesNotExist:
+            pass
 
 class Article(ModelBase):
     title = CharField()
@@ -69,9 +84,6 @@ class Article(ModelBase):
             article = Article.create(**args)
 
         return article
-
-class Publisher(ModelBase):
-    name = CharField()
 
 class JournalList(ModelBase):
     name = CharField()

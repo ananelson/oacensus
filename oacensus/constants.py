@@ -1,4 +1,4 @@
-dbfile = ':memory:'
+dbfile = 'oacensus.sqlite3'
 
 defaults = {
     'reports' : '',

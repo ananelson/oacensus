@@ -64,37 +64,37 @@ class DoajJournals(Scraper):
             with codecs.open(filepath, 'rb', encoding="utf-8") as f:
                 soup = BeautifulSoup(f)
 
-                for i in range(1,100):
-                    print "processing journal", i
-                    journal = Journal()
-                    select = "#record%s" % i
+                entries_per_page = 100
+                for i in range(1, entries_per_page):
+                    print "  processing journal", i
 
+                    select = "#record%s" % i
                     records = soup.select(select)
                     if not records:
                         break
-
                     record = soup.select(select)[0]
 
                     data = record.find("div", class_="data")
-
                     link = data.find("a")
-                    journal.title = link.find("b").text.strip()
-                    journal.url = link['href'].replace(u"/doaj?func=further&amp;passme=", u"")
+
+                    journal_title = link.find("b").text.strip()
+                    journal_url = link['href'].replace(u"/doaj?func=further&amp;passme=", u"")
 
                     issn_label = data.find("strong")
                     assert issn_label.text == "ISSN/EISSN"
                     issn_data = issn_label.next_sibling.strip().split(" ")
                     assert issn_data[0] == u':'
-                    journal.issn = issn_data[1]
+                    journal_issn = issn_data[1]
                     if len(issn_data) == 3:
-                        journal.eissn = issn_data[2]
+                        journal_eissn = issn_data[2]
+
 
                     if len(data.find_all("strong")) > 1:
                         subject_label = data.find_all("strong")[1]
                         assert subject_label.text == "Subject"
                         subject_link = subject_label.next_sibling.next_sibling
                         assert "func=subject" in subject_link['href']
-                        journal.subject = subject_link.text.strip()
+                        journal_subject = subject_link.text.strip()
 
                     for item in data.find_all('b'):
                         value = None
@@ -103,15 +103,26 @@ class DoajJournals(Scraper):
                                 value = item.next_sibling.replace(":", "").strip()
 
                         if item.text == 'Country':
-                            journal.country = value
+                            journal_country = value
                         elif item.text == 'Language':
-                            journal.language = value
+                            journal_language = value
                         elif item.text == 'Start year':
                             if value:
-                                journal.start_year = int(value)
+                                journal_start_year = int(value)
                         elif item.text == 'License':
-                            journal.license = item.next_sibling.next_sibling['href']
+                            journal_license = item.next_sibling.next_sibling['href']
                         else:
                             pass
 
-                    journal.save()
+                    journal = Journal.by_issn(journal_issn)
+                    if journal:
+                        print "found matching journal", journal
+                        journal.open_access = True
+                        journal.open_access_source = self.alias
+                        journal.license = journal_license
+                        journal.save()
+
+                    #print "country", journal_country
+                    #print "language", journal_language
+                    #print "subject", journal_subject
+                    #print "start_year", journal_start_year

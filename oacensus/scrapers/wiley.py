@@ -1,9 +1,10 @@
-from oacensus.scraper import Scraper
-import urllib
-import xlrd
-import os
 from oacensus.models import Journal
 from oacensus.models import JournalList
+from oacensus.models import Publisher
+from oacensus.scraper import Scraper
+import os
+import urllib
+import xlrd
 
 class WileyScraper(Scraper):
     """
@@ -41,12 +42,16 @@ class WileyScraper(Scraper):
         assert headers[subject_col] == "General Subject Category"
 
         journal_list = JournalList.create(name="Wiley Journals")
+        publisher = Publisher.create(name="Wiley")
 
         start = self.setting('header-row') + 1
         found_end = False
         max_row = 65000
 
         for i in range(start, max_row):
+            if i % 100 == 0:
+                print "  processing row", i
+
             try:
                 values = sheet.row_values(i, 0, 10)
             except IndexError:
@@ -54,11 +59,13 @@ class WileyScraper(Scraper):
                 break
 
             journal = Journal.create(
+                source = self.alias,
                 issn = values[issn_col],
                 eissn = values[eissn_col],
                 doi = values[doi_col],
                 title = values[title_col],
-                subject = values[subject_col]
+                subject = values[subject_col],
+                publisher = publisher
                 )
 
             journal_list.add_journal(journal)

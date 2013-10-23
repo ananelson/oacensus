@@ -1,9 +1,11 @@
 from modargs import args
 from oacensus.constants import defaults
+from oacensus.constants import dbfile
 from oacensus.scraper import Scraper
 from oacensus.report import Report
 import sys
 import yaml
+import os
 
 default_command = 'help'
 mod = sys.modules[__name__]
@@ -82,6 +84,14 @@ def run_command(
         scraper = Scraper.create_instance(alias, locals())
         scraper.update_settings(settings)
         scraper.run()
+
+    for report_alias in reports.split():
+        report = Report.create_instance(report_alias)
+        report.run()
+
+def reports_command(
+        reports = defaults['reports'], # reports to run
+        ):
 
     for report_alias in reports.split():
         report = Report.create_instance(report_alias)
