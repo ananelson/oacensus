@@ -1,11 +1,29 @@
 <h2>Openness Report</h2>
 
-{% for al in article_lists %}
+{% for al, dotplot in article_lists %}
 <h3>{{ al.name }}</h3>
-<ul>
+
+<img src="{{ dotplot }}" />
+<table>
+    <tr><th>Article</th><th>DOI</th><th>Open Access?</th></tr>
 {% for article in al.articles() %}
-<li>{{ article }}</li>
+<tr>
+    <td>
+        {% if article.url %}
+        <a href="{{ article.url }}">
+        {% endif %}
+            {{ article.truncate_title(50) }}
+        {% if article.url %}
+        </a>
+        {% endif %}
+    </td>
+    <td>
+        {{ article.doi }}
+    </td>
+    <td>
+        {{ article.open_access }}
+    </td>
 {% endfor %}
-</ul>
+</table>
 
 {% endfor %}

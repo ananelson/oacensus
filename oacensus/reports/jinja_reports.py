@@ -20,6 +20,9 @@ class JinjaReport(Report):
                 )
             }
 
+    def file_in_output_dir(self, filename):
+        return os.path.join(self.setting('output-dir'), filename)
+
     def template_data(self):
         """
         Return a dictionary whose keys will be available in the jinja template.
@@ -27,12 +30,6 @@ class JinjaReport(Report):
         return {
                 'foo' : 123
                 }
-
-    def do_other_actions(self):
-        """
-        Do other stuff like generate plots.
-        """
-        pass
 
     def process_jinja_template(self):
         dirs = self.setting('template-dirs')
@@ -51,6 +48,5 @@ class JinjaReport(Report):
 
     def run(self):
         self.setup_output_dir()
-        self.do_other_actions()
         self.process_jinja_template()
 

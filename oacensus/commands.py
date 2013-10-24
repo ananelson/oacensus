@@ -109,6 +109,7 @@ def run_command(
         scraper.run()
 
     for report_alias in reports.split():
+        print "running report %s" % report_alias
         report = Report.create_instance(report_alias)
         report.run()
 
@@ -121,5 +122,6 @@ def reports_command(
 
     db.init(dbfile)
     for report_alias in reports.split():
+        print "running report %s" % report_alias
         report = Report.create_instance(report_alias)
         report.run()

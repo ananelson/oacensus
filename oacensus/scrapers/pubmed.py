@@ -1,5 +1,6 @@
 from oacensus.exceptions import APIError
 from oacensus.scraper import Scraper
+from oacensus.utils import trunc
 import datetime
 import os
 import requests
@@ -73,7 +74,7 @@ class NCBI(Scraper):
         web_env = root.find("WebEnv").text
         query_key = root.find("QueryKey").text
 
-        print "There are %s total articles matching the search." % count
+        print "  there are %s total articles matching the search" % count
 
         return (count, web_env, query_key)
 
@@ -191,7 +192,7 @@ class Pubmed(NCBI):
                             doi = doi_entry.text
 
                     if not doi:
-                        print "  no doi for", title
+                        print "  no doi for", trunc(title)
 
                     pubmed_id = medline_citation.findtext("PMID")
 
@@ -221,4 +222,4 @@ class Pubmed(NCBI):
 
                     article_list.add_article(article)
 
-        print article_list
+        print "  ", article_list

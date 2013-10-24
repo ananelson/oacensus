@@ -6,3 +6,9 @@ defaults = {
     'cachedir' : '.oacensus/cache/',
     'workdir' : '.oacensus/work/'
 }
+
+def trunc(s, length=40):
+    if len(s) < length:
+        return s
+    else:
+        return s[0:length] + "..."

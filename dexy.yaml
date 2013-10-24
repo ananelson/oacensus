@@ -1,9 +1,16 @@
-examples/index.md|jinja|markdown|easyhtml:
+examples/index.adoc|jinja|asciidoctor:
     - examples
+    - easyhtml: {
+        css: "iframe { width: 700px; height: 300px; border: thin solid grey; }"
+        }
 
 examples:
-    - examples/*.sh|idio|shint|pyg:
-        - shint: { timeout: 100 }
+    - examples/*.sh|idio|shint|asciisyn:
+        - shint: {
+            timeout: 200,
+            add-new-files: True
+        }
         - .yaml
-    - examples/*.yaml|idio
-    - examples/*.yaml|pyg
+    - examples/*.yaml|idio|asciisyn:
+        - idio: { ext : '.txt' }
+    - examples/*.yaml|asciisyn
