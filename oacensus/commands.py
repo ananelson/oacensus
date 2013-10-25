@@ -4,6 +4,7 @@ from oacensus.db import db
 from oacensus.report import Report
 from oacensus.scraper import Scraper
 from oacensus.utils import defaults
+import datetime
 import os
 import sys
 import yaml
@@ -69,6 +70,8 @@ def run_command(
         workdir=defaults['workdir'], # Directory to store temp working directories.
         ):
 
+    start_time = datetime.datetime.now()
+
     if not os.path.exists(config):
         raise UserFeedback("Please provide a config file named '%s' or use --config option to specify a different filename." % config)
 
@@ -108,10 +111,17 @@ def run_command(
         scraper.update_settings(settings)
         scraper.run()
 
+    print "scraping and parsing completed in", datetime.datetime.now() - start_time
+    if reports:
+        run_reports(reports)
+
+def run_reports(reports):
+    start_time = datetime.datetime.now()
     for report_alias in reports.split():
         print "running report %s" % report_alias
         report = Report.create_instance(report_alias)
         report.run()
+    print "reports completed in", datetime.datetime.now() - start_time
 
 def reports_command(
         dbfile = defaults['dbfile'], # db file to use for reports
@@ -121,7 +131,4 @@ def reports_command(
         print "Please specify some reports to run."
 
     db.init(dbfile)
-    for report_alias in reports.split():
-        print "running report %s" % report_alias
-        report = Report.create_instance(report_alias)
-        report.run()
+    run_reports(reports)

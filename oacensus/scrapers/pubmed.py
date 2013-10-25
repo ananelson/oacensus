@@ -16,10 +16,7 @@ class NCBI(Scraper):
             "base-url" : ("Base url of API.", "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/"),
             "ncbi-db" : ("Name of NCBI database to query.", None),
             "search" : ("Search query to include.", None),
-            "filepattern" : (
-                "Pattern to use for names of files which hold data in cache.",
-                "data_%04d.xml"
-                ),
+            "filepattern" : ("Names of files which hold data in cache.", "data_%04d.xml"),
             "ret-max" : ("Maximum number of entries to return in any single query.", 10000),
             "delay" : ("Time in seconds to delay between API requests.", 1),
             "initial-ret-max" : ("Maximum number of entries to return in the initial query.", 5)
