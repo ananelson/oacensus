@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from oacensus.scraper import Scraper
 import codecs
+import json
 import os
 import re
 import requests
@@ -39,7 +40,10 @@ class DoajJournals(Scraper):
         return int(m.groups()[0])
 
     def scrape(self):
+        journals = []
+
         n = self.number_of_pages()
+        n = 1
 
         for page_index in range(n):
             self.print_progress("processing page %s of %s" % (page_index+1, n))
@@ -51,73 +55,88 @@ class DoajJournals(Scraper):
                     self.setting('base-url'),
                     params = params)
 
-            filepath = os.path.join(self.work_dir(), "data-%s.html" % page_index)
-            with codecs.open(filepath, 'wb', encoding="utf-8") as f:
+            page_filepath = os.path.join(self.work_dir(), "data-%s.html" % page_index)
+
+            with codecs.open(page_filepath, 'wb', encoding="utf-8") as f:
+                # Store contents in cache.
                 f.write(result.text)
 
-    def parse(self):
+            self.print_progress("  processing %s" % page_filepath)
+
+            soup = BeautifulSoup(result.text)
+
+            entries_per_page = 100
+
+            for i in range(1, entries_per_page):
+                if i % 10 == 0:
+                    self.print_progress("  processing journal %s" % i)
+
+                journal_info = {}
+
+                select = "#record%s" % i
+                records = soup.select(select)
+
+                if not records:
+                    break
+
+                record = records[0]
+
+                data = record.find("div", class_="data")
+                link = data.find("a")
+
+                journal_info['title'] = link.find("b").text.strip()
+                journal_info['url'] = link['href'].replace(u"/doaj?func=further&amp;passme=", u"")
+
+                issn_label = data.find("strong")
+                assert issn_label.text == "ISSN/EISSN"
+                issn_data = issn_label.next_sibling.strip().split(" ")
+                assert issn_data[0] == u':'
+                journal_info['issn'] = "%s-%s" % (issn_data[1][0:4], issn_data[1][4:8])
+                if len(issn_data) == 3:
+                    journal_info['eissn'] = "%s-%s" % (issn_data[2][0:4], issn_data[2][4:8])
+
+                if len(data.find_all("strong")) > 1:
+                    subject_label = data.find_all("strong")[1]
+                    assert subject_label.text == "Subject"
+                    subject_link = subject_label.next_sibling.next_sibling
+                    assert "func=subject" in subject_link['href']
+                    journal_info['subject'] = subject_link.text.strip()
+
+                for item in data.find_all('b'):
+                    value = None
+                    if item and item.next_sibling:
+                        if isinstance(item.next_sibling, basestring):
+                            value = item.next_sibling.replace(":", "").strip()
+
+                    if item.text == 'Country':
+                        journal_info['country'] = value
+                    elif item.text == 'Language':
+                        journal_info['language'] = value
+                    elif item.text == 'Start year':
+                        if value:
+                            journal_info['start_year'] = int(value)
+                    elif item.text == 'License':
+                        journal_info['license'] = item.next_sibling.next_sibling['href']
+                    else:
+                        pass
+
+                journals.append(journal_info)
+
+        journals_filepath = os.path.join(self.work_dir(), "journals-data.json")
+        with open(journals_filepath, 'wb') as f:
+            json.dump(journals, f)
+
+    def process(self):
         from oacensus.models import Journal
 
-        for filename in os.listdir(self.cache_dir()):
-            filepath = os.path.join(self.cache_dir(), filename)
-            self.print_progress("found %s" % filepath)
+        journals_filepath = os.path.join(self.cache_dir(), "journals-data.json")
+        with open(journals_filepath, 'rb') as f:
+            journals = json.load(f)
 
-            with codecs.open(filepath, 'rb', encoding="utf-8") as f:
-                soup = BeautifulSoup(f)
-
-                entries_per_page = 100
-                for i in range(1, entries_per_page):
-                    if i % 10 == 0:
-                        self.print_progress("  processing journal %s" % i)
-
-                    select = "#record%s" % i
-                    records = soup.select(select)
-                    if not records:
-                        break
-                    record = soup.select(select)[0]
-
-                    data = record.find("div", class_="data")
-                    link = data.find("a")
-
-                    journal_title = link.find("b").text.strip()
-                    journal_url = link['href'].replace(u"/doaj?func=further&amp;passme=", u"")
-
-                    issn_label = data.find("strong")
-                    assert issn_label.text == "ISSN/EISSN"
-                    issn_data = issn_label.next_sibling.strip().split(" ")
-                    assert issn_data[0] == u':'
-                    journal_issn = "%s-%s" % (issn_data[1][0:4], issn_data[1][4:8])
-                    if len(issn_data) == 3:
-                        journal_eissn = "%s-%s" % (issn_data[2][0:4], issn_data[2][4:8])
-
-                    if len(data.find_all("strong")) > 1:
-                        subject_label = data.find_all("strong")[1]
-                        assert subject_label.text == "Subject"
-                        subject_link = subject_label.next_sibling.next_sibling
-                        assert "func=subject" in subject_link['href']
-                        journal_subject = subject_link.text.strip()
-
-                    for item in data.find_all('b'):
-                        value = None
-                        if item and item.next_sibling:
-                            if isinstance(item.next_sibling, basestring):
-                                value = item.next_sibling.replace(":", "").strip()
-
-                        if item.text == 'Country':
-                            journal_country = value
-                        elif item.text == 'Language':
-                            journal_language = value
-                        elif item.text == 'Start year':
-                            if value:
-                                journal_start_year = int(value)
-                        elif item.text == 'License':
-                            journal_license = item.next_sibling.next_sibling['href']
-                        else:
-                            pass
-
-                    journal = Journal.by_issn(journal_issn)
-                    if journal:
-                        journal.open_access = True
-                        journal.open_access_source = self.alias
-                        journal.license = journal_license
-                        journal.save()
+        for journal_info in journals:
+            journal = Journal.by_issn(journal_info['issn'])
+            if journal:
+                journal.open_access = True # because on doaj website
+                journal.open_access_source = self.alias
+                journal.license = journal_info['license']
+                journal.save()

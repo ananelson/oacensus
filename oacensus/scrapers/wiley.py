@@ -18,7 +18,7 @@ class WileyScraper(Scraper):
         filepath = os.path.join(self.work_dir(), self.setting('data-file'))
         urllib.urlretrieve(self.setting('url'), filepath)
 
-    def parse(self):
+    def process(self):
         from oacensus.models import JournalList
         from oacensus.models import Publisher
         from oacensus.models import Journal

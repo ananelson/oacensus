@@ -93,7 +93,7 @@ class ElsevierJournals(Scraper):
             anchor = entry.find('a')
             yield anchor
 
-    def parse(self):
+    def process(self):
         from oacensus.models import JournalList
         from oacensus.models import Publisher
         elsevier_list = JournalList.create(name="Elsevier Journals")

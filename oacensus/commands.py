@@ -62,11 +62,12 @@ def scrapers_command(
     print "\n"
 
 def run_command(
+        cachedir=defaults['cachedir'], # Directory to store cached scraped data.
+        config=defaults['config'], # YAML file to read configuration from.
         dbfile=defaults['dbfile'], # Name of sqlite db file.
+        profile=defaults['profile'], # Whether to run in profiler (dev only).
         progress=defaults['progress'], # Whether to show progress indicators.
         reports=defaults['reports'], # Reports to run.
-        config=defaults['config'], # YAML file to read configuration from.
-        cachedir=defaults['cachedir'], # Directory to store cached scraped data.
         workdir=defaults['workdir'], # Directory to store temp working directories.
         ):
 
@@ -77,6 +78,10 @@ def run_command(
 
     with open(config, 'r') as f:
         conf = yaml.safe_load(f.read())
+
+    if os.path.exists(dbfile):
+        print "removing old db file", dbfile
+        os.remove(dbfile)
 
     db.init(dbfile)
 
@@ -109,7 +114,14 @@ def run_command(
         print "running", alias
         scraper = Scraper.create_instance(alias, locals())
         scraper.update_settings(settings)
-        scraper.run()
+
+        if profile:
+            import cProfile
+            profile_filename = "%s-oacensus.prof" % alias
+            print "running scraper with cProfile, writing data to", profile_filename
+            cProfile.runctx("scraper.run()", None, locals(), profile_filename)
+        else:
+            scraper.run()
 
     print "scraping and parsing completed in", datetime.datetime.now() - start_time
     if reports:

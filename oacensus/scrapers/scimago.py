@@ -44,7 +44,7 @@ class ScimagoJournals(Scraper):
                     break
                 f.write(block)
 
-    def parse(self):
+    def process(self):
         from oacensus.models import Journal
 
         filepath = os.path.join(self.cache_dir(), self.setting('filename'))

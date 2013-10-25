@@ -17,7 +17,7 @@ class OAG(Scraper):
         # caching will not be accurate
         pass
 
-    def parse(self):
+    def process(self):
         from oacensus.models import Article
         articles = Article.select()
         DOIs = [article.doi for article in articles if article.doi]

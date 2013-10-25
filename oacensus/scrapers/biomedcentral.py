@@ -64,7 +64,7 @@ class BiomedCentralJournals(Scraper):
 
             yield anchor
 
-    def parse(self):
+    def process(self):
         from oacensus.models import Journal
         from oacensus.models import JournalList
         from oacensus.models import Publisher

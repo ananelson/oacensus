@@ -10,7 +10,7 @@ class TestScraper(Scraper):
     def scrape(self):
         pass
 
-    def parse(self):
+    def process(self):
         pass
 
 def test_hashcode():

@@ -49,8 +49,8 @@ class Scraper(Plugin):
         else:
             print "  scraped data is already cached"
 
-        print "  calling parse method..."
-        self.parse()
+        print "  calling process method..."
+        self.process()
 
     def cache_dir(self):
         """
@@ -95,9 +95,8 @@ class Scraper(Plugin):
         """
         raise NotImplementedError()
 
-    def parse(self):
+    def process(self):
         """
-        Working from the local cache, parse data files and make content
-        available for querying.
+        Working from the local cache, process data & add to db.
         """
         raise NotImplementedError()

@@ -29,7 +29,7 @@ class Orcid(Scraper):
         with open(orcid_filepath, 'wb') as f:
             pickle.dump(responses, f)
 
-    def parse(self):
+    def process(self):
         from oacensus.models import Article
         from oacensus.models import ArticleList
 

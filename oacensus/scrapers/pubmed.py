@@ -134,7 +134,7 @@ class Pubmed(NCBI):
             "ncbi-db" : "pubmed"
             }
 
-    def parse(self):
+    def process(self):
         from oacensus.models import ArticleList
         from oacensus.models import Article
         from oacensus.models import Journal

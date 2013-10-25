@@ -1,9 +1,10 @@
 defaults = {
+    'cachedir' : '.oacensus/cache/',
+    'config' : 'oacensus.yaml',
     'dbfile' : 'oacensus.sqlite3',
+    'profile' : False,
     'progress' : False,
     'reports' : '',
-    'config' : 'oacensus.yaml',
-    'cachedir' : '.oacensus/cache/',
     'workdir' : '.oacensus/work/'
 }
 

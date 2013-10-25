@@ -14,24 +14,13 @@ class OAIPMH(Scraper):
     aliases = ['oai']
 
     _settings = {
-            'data-file' : (
-                'internal data file for storage',
-                'oai.pickle'
-                ),
-            'base-api-url' : (
-                "Base url of repository.",
-                "http://ora.ouls.ox.ac.uk:8080/fedora/oai"
-                ),
-            'base-objects-url' : (
-                "URL at which objects can be accessed by uuid.",
-                "http://ora.ouls.ox.ac.uk/objects/"
-                ),
-            'from' : ( "'from' prameter", datetime.datetime(2013, 1, 1)),
-            'until' : ( "'until' prameter", datetime.datetime(2013, 12, 31)),
-            'set' : (
-                "'set' parameter to be passed in query.", None
-                )
-            }
+            'data-file' : ('internal data file for storage', 'oai.pickle'),
+            'base-api-url' : ("Base url of repository.", None),
+            'base-objects-url' : ("URL at which objects can be accessed by uuid.", None),
+            'from' : ( "'from' prameter", None ),
+            'until' : ( "'until' prameter", None ),
+            'set' : ("'set' parameter", None)
+          }
 
     def scrape(self):
         registry = MetadataRegistry()
@@ -53,11 +42,13 @@ class OAIPMH(Scraper):
         if oai_set:
             kwargs['set'] = oai_set
 
-        if oai_from:
-            kwargs['from_'] = oai_from
+        if oai_from is not None:
+            date_args = [int(arg) for arg in oai_from.split("-")]
+            kwargs['from_'] = datetime.datetime(*date_args)
 
-        if oai_until:
-            kwargs['until'] = oai_until
+        if oai_until is not None:
+            date_args = [int(arg) for arg in oai_until.split("-")]
+            kwargs['until'] = datetime.datetime(*date_args)
 
         records = [r for r in client.listRecords(metadataPrefix='oai_dc', **kwargs)]
 
@@ -66,11 +57,12 @@ class OAIPMH(Scraper):
             print "  picking", len(records), "records"
             pickle.dump(records, f)
 
-    def parse(self):
+    def process(self):
         data_filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
         with open(data_filepath, 'rb') as f:
             records = pickle.load(f)
 
+        oai_info = []
         for record in records:
             header, meta, _ = record
             m = meta.getMap()
@@ -98,12 +90,30 @@ class OAIPMH(Scraper):
 
             object_url = "%s%s" % (self.setting('base-objects-url'), urn)
 
-            print "authors", "; ".join(author.strip() for author in m['creator'])
-            print "title", title
-            print "object url", object_url
-            print "license", license
-            print "date", date
+            oai_info.append({
+                "authors" : "; ".join(author.strip() for author in m['creator']),
+                "title" : title,
+                "url url" : object_url,
+                "license" : license,
+                "date" : date
+            })
 
         # now what? match on titles?
         # https://pypi.python.org/pypi/jellyfish/0.1.2
         # http://nltk.googlecode.com/svn/trunk/doc/api/nltk.metrics.distance-module.html
+
+        import jellyfish
+
+        from oacensus.models import Article
+        for article in Article.select():
+            print article.title
+            for info in oai_info:
+                ld = jellyfish.levenshtein_distance(article.title, info['title'])
+                dld = jellyfish.damerau_levenshtein_distance(article.title, info['title'])
+                jd = jellyfish.jaro_distance(article.title, info['title'])
+
+                if ld > 0.5:
+                    print info['title']
+                    print ld
+                    print dld
+                    print jd

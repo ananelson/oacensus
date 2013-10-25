@@ -20,7 +20,7 @@ class Crossref(Scraper):
         # caching will not be accurate
         pass
 
-    def parse(self):
+    def process(self):
         from oacensus.models import Article
 
         for article in Article.select():
