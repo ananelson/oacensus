@@ -43,7 +43,6 @@ class DoajJournals(Scraper):
         journals = []
 
         n = self.number_of_pages()
-        n = 1
 
         for page_index in range(n):
             self.print_progress("processing page %s of %s" % (page_index+1, n))
