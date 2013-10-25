@@ -70,6 +70,7 @@ class Article(ModelBase):
     date_published = DateField(null=True)
     source = CharField()
     journal = ForeignKeyField(Journal, null=True)
+    url = CharField(null=True)
 
     pubmed_id = CharField(null=True)
     nihm_id = CharField(null=True)
