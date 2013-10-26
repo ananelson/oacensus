@@ -189,6 +189,26 @@ Here are some examples:
 Scrapers and reports are implemented using the
 http://dexy.github.io/cashew/[cashew plugin system].
 
+=== ORM
+
+Oacensus uses the http://peewee.readthedocs.org/[peewee ORM].
+
+{% set models = d['models_info.json'].from_json() %}
+
+{% for model_name in sorted(models) %}
+==== {{ model_name }}
+
+Fields:
+
+{% for field_name in sorted(models[model_name]) -%}
+{% set field_info = models[model_name][field_name] -%}
+- *{{ field_name }}* {{ "_%s_" % field_info['help'] if field_info['help'] else '' }}
+
+{% endfor -%}
+
+{% endfor %}
+
+
 === Scraper Design
 
 Scrapers work in two phases. The first phase is `scrape` and the second phase

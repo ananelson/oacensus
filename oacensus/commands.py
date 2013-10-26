@@ -10,7 +10,7 @@ import os
 import sys
 import yaml
 
-default_command = 'help'
+default_cmd = 'help'
 mod = sys.modules[__name__]
 prog = 'oacensus'
 
@@ -23,7 +23,7 @@ def run():
     Main entry point. Calls python modargs to run the requested command.
     """
     try:
-        args.parse_and_run_command(sys.argv[1:], mod, default_command=default_command)
+        args.parse_and_run_command(sys.argv[1:], mod, default_command=default_cmd)
     except UserFeedback as e:
         sys.stderr.write("A %s has occurred. Stopping.\n\nError message:\n" % e.__class__.__name__)
         sys.stderr.write(str(e) + "\n")
@@ -33,7 +33,7 @@ def run():
         sys.exit(1)
 
 def help_command(on=False):
-    args.help_command(prog, mod, default_command, on)
+    args.help_command(prog, mod, default_cmd, on)
 
 def list_command(
         alias = '', # Optionally, only print help for the specified alias.

@@ -20,15 +20,18 @@ class Publisher(ModelBase):
         return u"<Publisher {0}: {1}>".format(self.id, self.name)
 
 class Journal(ModelBase):
-    title = CharField()
-    url = CharField(null=True)
-    publisher = ForeignKeyField(Publisher, null=True)
-    source = CharField() # where journal data was obtained from
-    issn = CharField(null=True)
-    eissn = CharField(null=True)
+    title = CharField(help_text="Name of journal.")
+    url = CharField(null=True, help_text="Website of journal.")
+    publisher = ForeignKeyField(Publisher, null=True,
+        help_text="Publisher object corresponding to journal publisher.")
+    source = CharField(help_text="Which scraper populated basic journal information.")
+    issn = CharField(null=True, help_text="ISSN of journal.")
+    eissn = CharField(null=True, help_text="Electronic ISSN (EISSN) of journal.")
 
-    open_access = BooleanField(null=True)
-    open_access_source = CharField(null=True)
+    open_access = BooleanField(null=True,
+        help_text="Is this journal available as an open access journal?")
+    open_access_source = CharField(null=True,
+            help_text="Source of information (scraper alias) for open_access field.")
     license = CharField(null=True)
 
     subject = CharField(null=True)

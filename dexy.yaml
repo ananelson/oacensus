@@ -2,6 +2,8 @@ examples/index.adoc|jinja|asciidoctor:
     - asciidoctor: {
         'clargs' : '-a icons=font'
         }
+    - examples/models_info.py|py:
+        - py : { add-new-files: ['.json'] }
     - examples/example1.sh|idio|shint|asciisyn:
         - shint: {
             timeout: 1000,
