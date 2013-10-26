@@ -10,6 +10,10 @@ class Scraper(Plugin):
     """
     __metaclass__ = PluginMeta
 
+    _settings = {
+            'cache': ("Location to copy cache files from.", None)
+            }
+
     def __init__(self, opts=None):
         if opts:
             self._opts = opts
@@ -41,13 +45,17 @@ class Scraper(Plugin):
 
     def run(self):
         print self.cache_dir()
-        if not self.is_scraped_content_cached():
-            self.reset_work_dir()
-            print "  calling scrape method..."
-            self.scrape()
-            self.copy_work_dir_to_cache()
-        else:
+        if self.is_scraped_content_cached():
             print "  scraped data is already cached"
+        else:
+            self.reset_work_dir()
+            if self.setting('cache') is not None:
+                print "  using cache location %s..." % self.setting('cache')
+                shutil.copytree(self.setting('cache'), self.cache_dir())
+            else:
+                print "  calling scrape method..."
+                self.scrape()
+                self.copy_work_dir_to_cache()
 
         print "  calling process method..."
         self.process()

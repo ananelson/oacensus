@@ -1,6 +1,7 @@
 from modargs import args
-from oacensus.exceptions import UserFeedback
 from oacensus.db import db
+from oacensus.exceptions import ConfigFileFormatProblem
+from oacensus.exceptions import UserFeedback
 from oacensus.report import Report
 from oacensus.scraper import Scraper
 from oacensus.utils import defaults
@@ -24,7 +25,7 @@ def run():
     try:
         args.parse_and_run_command(sys.argv[1:], mod, default_command=default_command)
     except UserFeedback as e:
-        sys.stderr.write("An %s has occurred. Stopping." % e.__class__.__name__)
+        sys.stderr.write("A %s has occurred. Stopping.\n\nError message:\n" % e.__class__.__name__)
         sys.stderr.write(str(e) + "\n")
         sys.exit(1)
     except KeyboardInterrupt:
@@ -34,18 +35,33 @@ def run():
 def help_command(on=False):
     args.help_command(prog, mod, default_command, on)
 
-def scrapers_command(
-        alias = '' # Optionally, only print help for the specified alias.
+def list_command(
+        alias = '', # Optionally, only print help for the specified alias.
+        scrapers=True, # Whether to list available scrapers.
+        reports=False # Whether to list available reports.
         ):
     """
-    List the available scraper plugins.
+    List the available scraper or reporter plugins.
     """
     nodoc = ['aliases', 'help']
+    instances = []
 
-    if alias:
-        instances = [Scraper.create_instance(alias)]
-    else:
-        instances = Scraper
+    if scrapers:
+        if alias:
+            if alias in Scraper.plugins:
+                instances = [Scraper.create_instance(alias)]
+        else:
+            instances = Scraper
+
+    if reports:
+        if alias:
+            if alias in Report.plugins:
+                instances = [Report.create_instance(alias)]
+        else:
+            instances = Report
+
+    if alias and not instances:
+        print "No scraper or report matched '%s'" % alias
 
     for instance in instances:
         print "\n"
@@ -113,7 +129,14 @@ def run_command(
 
         print "running", alias
         scraper = Scraper.create_instance(alias, locals())
-        scraper.update_settings(settings)
+
+        try:
+            scraper.update_settings(settings)
+        except AttributeError as e:
+            if str(e) == "'list' object has no attribute 'iteritems'":
+                msg = "Don't use hyphens in the 2nd level of YAML config.\n"
+                msg += "Correct format is\n- alias\n    key1: value1\n    key2: value2"
+                raise ConfigFileFormatProblem(msg)
 
         if profile:
             import cProfile

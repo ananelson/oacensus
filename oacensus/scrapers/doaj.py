@@ -128,8 +128,12 @@ class DoajJournals(Scraper):
 
         for journal in Journal.select():
             doaj_info = doaj_journals.get(journal.issn)
+
+            if not doaj_info and journal.eissn:
+                doaj_info = doaj_journals.get(journal.eissn)
+
             if doaj_info:
                 journal.open_access = True # because on doaj website
                 journal.open_access_source = self.alias
-                journal.license = doaj_info['license']
+                journal.license = doaj_info.get('license')
                 journal.save()

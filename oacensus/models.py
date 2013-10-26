@@ -16,6 +16,9 @@ class ModelBase(Model):
 class Publisher(ModelBase):
     name = CharField()
 
+    def __unicode__(self):
+        return u"<Publisher {0}: {1}>".format(self.id, self.name)
+
 class Journal(ModelBase):
     title = CharField()
     url = CharField(null=True)

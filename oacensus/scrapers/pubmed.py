@@ -1,6 +1,5 @@
 from oacensus.exceptions import APIError
 from oacensus.scraper import Scraper
-from oacensus.utils import trunc
 import datetime
 import os
 import requests
@@ -188,9 +187,6 @@ class Pubmed(NCBI):
                         if eid_type == 'doi':
                             doi = doi_entry.text
 
-                    if not doi:
-                        print "  no doi for", trunc(title)
-
                     pubmed_id = medline_citation.findtext("PMID")
 
                     nihm_id = None
@@ -202,7 +198,7 @@ class Pubmed(NCBI):
                         elif other_id_text.startswith("PMC"):
                             pcm_id = other_id_text
                         else:
-                            print "  ignoring other id ", other_id_text
+                            pass
 
                     assert title is not None
 

@@ -65,3 +65,4 @@ class ExcelDump(Report):
                         ws.write(i+1, j, value)
 
         workbook.save(filename)
+        print "  database contents written to %s" % filename

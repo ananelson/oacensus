@@ -7,6 +7,12 @@ class UserFeedback(OacensusError):
     should be presented nicely.
     """
 
+class ConfigFileFormatProblem(UserFeedback):
+    """
+    A problem with config files.
+    """
+    pass
+
 class APIError(UserFeedback):
     """
     An exception raised by a remote API.

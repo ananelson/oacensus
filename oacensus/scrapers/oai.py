@@ -9,23 +9,24 @@ class OAIPMH(Scraper):
     """
     Scrape OAI/PMH repositories.
 
+    Not finished. Doesn't do anything right now.
     This has some ORA (Oxford University Research Archive) specific stuff in here.
     """
     aliases = ['oai']
 
     _settings = {
             'data-file' : ('internal data file for storage', 'oai.pickle'),
-            'base-api-url' : ("Base url of repository.", None),
+            'pmh-endpoint' : ("Base url of OAI PMH interface to repository.", None),
             'base-objects-url' : ("URL at which objects can be accessed by uuid.", None),
-            'from' : ( "'from' prameter", None ),
-            'until' : ( "'until' prameter", None ),
+            'from' : ( "'from' parameter, in \"YYYY-MM-DD\" format", None ),
+            'until' : ( "'until' parameter, in \"YYYY-MM-DD\" format", None ),
             'set' : ("'set' parameter", None)
           }
 
     def scrape(self):
         registry = MetadataRegistry()
         registry.registerReader('oai_dc', oai_dc_reader)
-        url = self.setting('base-api-url')
+        url = self.setting('pmh-endpoint')
         client = Client(url, registry)
 
         print "  OAI Repository", url
@@ -72,7 +73,11 @@ class OAIPMH(Scraper):
                 continue
 
             title = m['title'][0].strip()
-            date = m['date'][0].strip()
+
+            if len(m['date']) > 0:
+                date = m['date'][0].strip()
+            else:
+                date = None
 
             license = None
 
@@ -98,7 +103,7 @@ class OAIPMH(Scraper):
                 "date" : date
             })
 
-        # now what? match on titles?
+        # now what? try to match on titles?
         # https://pypi.python.org/pypi/jellyfish/0.1.2
         # http://nltk.googlecode.com/svn/trunk/doc/api/nltk.metrics.distance-module.html
 
@@ -106,14 +111,13 @@ class OAIPMH(Scraper):
 
         from oacensus.models import Article
         for article in Article.select():
-            print article.title
             for info in oai_info:
-                ld = jellyfish.levenshtein_distance(article.title, info['title'])
-                dld = jellyfish.damerau_levenshtein_distance(article.title, info['title'])
-                jd = jellyfish.jaro_distance(article.title, info['title'])
+                try:
+                    jd = jellyfish.jaro_winkler(article.title, info['title'])
 
-                if ld > 0.5:
-                    print info['title']
-                    print ld
-                    print dld
-                    print jd
+                    if jd > 0.8:
+                        print article.title
+                        print info['title']
+                        print "Jaro Winkler Distance:", jd
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    pass
