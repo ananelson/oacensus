@@ -359,6 +359,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 .literalblock > .content > pre, .listingblock > .content > pre { -webkit-border-radius: 0; border-radius: 0; }
 
 </style>
+<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/3.2.1/css/font-awesome.min.css">
 <style>
 .highlight .hll { background-color: #ffffcc }
 .highlight  { background: #ffffff; }
@@ -429,7 +430,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <div id="toc" class="toc">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
-<li><a href="#_general_usage">General Usage</a></li>
+<li><a href="#_introduction">Introduction</a></li>
 <li><a href="#_use_cases">Use Cases</a></li>
 <li>
 <ul class="sectlevel2">
@@ -439,12 +440,26 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li><a href="#_rcuk_policy_compliance_report">RCUK Policy Compliance Report</a></li>
 </ul>
 </li>
+<li><a href="#_user_guide">User Guide</a></li>
+<li>
+<ul class="sectlevel2">
+<li><a href="#_command_line_interface">Command Line Interface</a></li>
+<li><a href="#_config_file_format">Config File Format</a></li>
+</ul>
+</li>
+<li><a href="#_writing_scrapers_and_reports">Writing Scrapers and Reports</a></li>
+<li>
+<ul class="sectlevel2">
+<li><a href="#_scraper_design">Scraper Design</a></li>
+<li><a href="#_report_design">Report Design</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
 <div id="content">
 <div class="sect1">
-<h2 id="_general_usage">General Usage</h2>
+<h2 id="_introduction">Introduction</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>This tool consists of several configurable data scrapers and parsers, and also
@@ -465,6 +480,8 @@ take into consideration the ordering of parsers.</p>
 <div class="sectionbody">
 <div class="sect2">
 <h3 id="_institutional_open_access_census">Institutional Open Access Census</h3>
+<div class="sect3">
+<h4 id="_user_story">User Story</h4>
 <div class="paragraph">
 <p>A librarian at Oxford University wishes to understand the amount of Open Access
 content, as defined in different ways, in the research they publish. They first
@@ -480,6 +497,7 @@ repository[1]). They aim to provide a report on this once a month.</p>
 <p>[1] Most IRs can be searched via a standard protocol OAI-PMH. It would be
 reasonable to ask the user to supply the appropriate URL for the API endpoint</p>
 </div>
+</div>
 <div class="sect3">
 <h4 id="_pubmed_articles">PubMed Articles</h4>
 <div class="paragraph">
@@ -491,7 +509,7 @@ the <code>pubmed</code> scraper:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus scrapers -alias pubmed
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus list -alias pubmed
 
 
 <span class="tok-go">     alias: pubmed</span>
@@ -499,8 +517,9 @@ the <code>pubmed</code> scraper:</p>
 <span class="tok-go">     articles returned from pubmed matching the [required] search query.</span>
 
 <span class="tok-go">         base-url: Base url of API. (http://eutils.ncbi.nlm.nih.gov/entrez/eutils/)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
 <span class="tok-go">         delay: Time in seconds to delay between API requests. (1)</span>
-<span class="tok-go">         filepattern: Pattern to use for names of files which hold data in cache. (data_%04d.xml)</span>
+<span class="tok-go">         filepattern: Names of files which hold data in cache. (data_%04d.xml)</span>
 <span class="tok-go">         initial-ret-max: Maximum number of entries to return in the initial query. (5)</span>
 <span class="tok-go">         ncbi-db: Name of NCBI database to query. (pubmed)</span>
 <span class="tok-go">         ret-max: Maximum number of entries to return in any single query. (10000)</span>
@@ -520,7 +539,13 @@ the <code>pubmed</code> scraper:</p>
 </div>
 </div>
 <div class="sect3">
-<h4 id="_doaj_metadata">DOAJ metadata</h4>
+<h4 id="_crossref_articles">CrossRef Articles</h4>
+<div class="paragraph">
+<p>TBD.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_doaj_metadata">DOAJ Metadata</h4>
 <div class="paragraph">
 <p>The <code>doaj</code> scraper fetches the full listing of open access journals from DOAJ.</p>
 </div>
@@ -528,75 +553,104 @@ the <code>pubmed</code> scraper:</p>
 <p>Then, any journals in the database matching DOAJ ISSNs are updated with DOAJ
 information about openness and license information.</p>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus list -alias doaj
+
+
+<span class="tok-go">     alias: doaj</span>
+<span class="tok-go">     Updates journals in the database with openness information from DOAJ.</span>
+
+<span class="tok-go">         base-url: Base url for accessing DOAJ. (http://www.doaj.org/doaj)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         data-file: File to save data under. (doaj.pickle)</span>
+<span class="tok-go">         standard-params: Params used in every request. ({&#39;uiLanguage&#39;: &#39;en&#39;, &#39;func&#39;: &#39;browse&#39;})</span>
+</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>We don&#8217;t need to set any parameters:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code class="yaml language-yaml"><span class="tok-c1">#- doaj</span>
+<pre class="pygments highlight"><code class="yaml language-yaml"><span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">doaj</span><span class="tok-p-Indicator">:</span>
+    <span class="tok-l-Scalar-Plain">cache</span><span class="tok-p-Indicator">:</span> <span class="tok-s">&quot;/home/ana/dev/oacensus-new/examples/.doaj-cache&quot;</span>
 </code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>(The <code>cache</code> parameter is for convenience of generating these docs reasonably
+ quickly - you should not use it unless you want to manually maintain a cache.
+ There is a cache maintained for you automatically.)</p>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_oag_licensing_information">OAG Licensing Information</h4>
 <div class="paragraph">
-<p>The OAG service provides licensing information based on a DOI.</p>
+<p>The OAG scraper retrieves OAG metadata for any article in the database which has a DOI:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus list -alias oag
+
+
+<span class="tok-go">     alias: oag</span>
+<span class="tok-go">     Gets license information for all articles with DOIs in the database.</span>
+
+<span class="tok-go">         base-url: Base url of OAG API (http://oag.cottagelabs.com/lookup/)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We don&#8217;t need to set any parameters:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="yaml language-yaml"><span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">oag</span>
+</code></pre>
+</div>
 </div>
 </div>
 <div class="sect3">
 <h4 id="_running_the_example">Running the Example</h4>
 <div class="listingblock">
 <div class="content">
-<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus run --config example1.yaml
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus run --config example1.yaml --reports excel
 <span class="tok-go">running pubmed</span>
-<span class="tok-go">.oacensus/cache/ec25f5ce2e5f30cc2644c950ffd3a16e</span>
+<span class="tok-go">.oacensus/cache/3ba45806340f50cce112623cd2055b00</span>
 <span class="tok-go">  calling scrape method...</span>
 <span class="tok-go">  there are 296 total articles matching the search</span>
-<span class="tok-go">  calling parse method...</span>
-<span class="tok-go">  no doi for The importance of ideal central venous a...</span>
-<span class="tok-go">  no doi for Dynamical correlations after a quantum q...</span>
-<span class="tok-go">  no doi for On the Wrong Track: Process and Content ...</span>
-<span class="tok-go">  no doi for Is Previous Disaster Experience a Good P...</span>
-<span class="tok-go">  no doi for Reducing upper extremity deep vein throm...</span>
-<span class="tok-go">  ignoring other id  HHMIMS416875</span>
-<span class="tok-go">  no doi for Raised circulating tenascin-C in rheumat...</span>
-<span class="tok-go">  no doi for Quality of life after ileo-anal pouch fo...</span>
-<span class="tok-go">  ignoring other id  EMS53216</span>
-<span class="tok-go">  no doi for Pitfalls in the Management of Severe Hyp...</span>
-<span class="tok-go">  no doi for Collagenase for Dupuytren&#39;s disease of t...</span>
-<span class="tok-go">  no doi for Peierls distortion and quantum solitons....</span>
-<span class="tok-go">  no doi for Surgical correction of tracheo-oesophage...</span>
-<span class="tok-go">  ignoring other id  UKMS49766</span>
-<span class="tok-go">  no doi for Converting data into currency.</span>
-<span class="tok-go">  no doi for A review of mitral isthmus ablation.</span>
-<span class="tok-go">  no doi for EPR spectroscopic studies of the Fe-S cl...</span>
-<span class="tok-go">  ignoring other id  UKMS49514</span>
-<span class="tok-go">  ignoring other id  UKMS48493</span>
-<span class="tok-go">  no doi for Revealing mechanisms underlying variatio...</span>
-<span class="tok-go">  no doi for Axial deformation during coronary stenti...</span>
-<span class="tok-go">  ignoring other id  EMS53083</span>
-<span class="tok-go">  no doi for Universal statistics of vortex lines.</span>
-<span class="tok-go">  ignoring other id  UKMS48315</span>
-<span class="tok-go">  no doi for Monopoles, magnetricity, and the stray f...</span>
-<span class="tok-go">  no doi for Old foes are fighting the same corner.</span>
-<span class="tok-go">  no doi for A constricting differential--a case of s...</span>
-<span class="tok-go">  no doi for Prevention and treatment of coronary dis...</span>
-<span class="tok-go">  no doi for Lymphoepithelioma-like carcinoma of the ...</span>
-<span class="tok-go">  ignoring other id  UKMS49677</span>
+<span class="tok-go">  calling process method...</span>
 <span class="tok-go">   &lt;ArticleList: u&#39;&lt;Article List 296: pubmed search: &quot;Oxford University&quot;[affiliation] AND 2012[pdat]&gt;&#39;&gt;</span>
 <span class="tok-go">running oag</span>
-<span class="tok-go">.oacensus/cache/a1e95023b309c121ae22b654ca992646</span>
+<span class="tok-go">.oacensus/cache/0e11951337d0ee1d99bee44effeac9cb</span>
 <span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling parse method...</span>
+<span class="tok-go">  calling process method...</span>
 <span class="tok-go">  no info found for &lt;Article: u&#39;Enhanced cognitive behaviour therapy for...&#39;&gt;</span>
+<span class="tok-go">running doaj</span>
+<span class="tok-go">.oacensus/cache/0d7734f817f78ed1eb1c4740bbe2b766</span>
+<span class="tok-go">  using cache location /home/ana/dev/oacensus-new/examples/.doaj-cache...</span>
+<span class="tok-go">  calling process method...</span>
+<span class="tok-go">scraping and parsing completed in 0:00:47.371830</span>
+<span class="tok-go">running report excel</span>
+<span class="tok-go">  database contents written to dump.xls</span>
+<span class="tok-go">reports completed in 0:00:00.817943</span>
 </code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>The <code>excel</code> report dumps each database table onto an excel worksheet for inspection.</p>
+</div>
+<div class="paragraph">
+<p><a href="dump.xls">Excel Report</a></p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_individual_openness_report">Individual Openness Report</h3>
+<div class="sect3">
+<h4 id="_user_story_2">User Story</h4>
 <div class="paragraph">
 <p>A researcher wishes to provide a report demonstrating that they are a good
 citizen in generating open content. They use their ORCID profile as a source of
@@ -608,6 +662,15 @@ their institutional repository.</p>
 <p>[2] "free-to-read" is a metadata element that Crossref will be shortly rolling
 out. It doesn&#8217;t yet exist and will take some time to reach critical mass.</p>
 </div>
+</div>
+<div class="sect3">
+<h4 id="_implementation">Implementation</h4>
+<div class="paragraph">
+<p>For now this report is implementing just using OAG openness data.</p>
+</div>
+<div class="paragraph">
+<p>Here is the full project configuration:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code class="yaml language-yaml"><span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">orcid</span><span class="tok-p-Indicator">:</span>
@@ -617,26 +680,37 @@ out. It doesn&#8217;t yet exist and will take some time to reach critical mass.<
 </code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Here is the run output:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus run --config example2.yaml --reports <span class="tok-s2">&quot;personal-openness&quot;</span>
 <span class="tok-go">running orcid</span>
-<span class="tok-go">.oacensus/cache/11e702b808a84617787f27e385a4548b</span>
+<span class="tok-go">.oacensus/cache/74a1d1d0cce7e41702f1e926f876c71b</span>
 <span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling parse method...</span>
+<span class="tok-go">  calling process method...</span>
 <span class="tok-go">running oag</span>
-<span class="tok-go">.oacensus/cache/a1e95023b309c121ae22b654ca992646</span>
+<span class="tok-go">.oacensus/cache/0e11951337d0ee1d99bee44effeac9cb</span>
 <span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling parse method...</span>
+<span class="tok-go">  calling process method...</span>
+<span class="tok-go">scraping and parsing completed in 0:00:06.263804</span>
 <span class="tok-go">running report personal-openness</span>
+<span class="tok-go">reports completed in 0:00:00.776689</span>
 </code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>And here is the resulting report:</p>
 </div>
 <iframe src="report-openness/index.html" style="width: 800px; height: 350px;">
 </iframe>
 </div>
+</div>
 <div class="sect2">
 <h3 id="_topic_openness_report">Topic Openness Report</h3>
+<div class="sect3">
+<h4 id="_user_story_3">User Story</h4>
 <div class="paragraph">
 <p>A patient advocate wants to understand how much content related to their
 disease is available. They search PubMed to identify a set of articles and a
@@ -649,8 +723,11 @@ and available openly licensed.</p>
 out. It doesn&#8217;t yet exist and will take some time to reach critical mass.</p>
 </div>
 </div>
+</div>
 <div class="sect2">
 <h3 id="_rcuk_policy_compliance_report">RCUK Policy Compliance Report</h3>
+<div class="sect3">
+<h4 id="_user_story_4">User Story</h4>
 <div class="paragraph">
 <p>A UK funder wishes to report on RCUK policy compliance. They use Gateway to
 Research to generate a list of publications relating to their funding.
@@ -664,9 +741,322 @@ repositories.</p>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_user_guide">User Guide</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_command_line_interface">Command Line Interface</h3>
+<div class="paragraph">
+<p>The main <code>help</code> command is:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus <span class="tok-nb">help</span>
+<span class="tok-go">Available commands for oacensus are:</span>
+<span class="tok-go">   default</span>
+<span class="tok-go">   help</span>
+<span class="tok-go">   list</span>
+<span class="tok-go">   reports</span>
+<span class="tok-go">   run</span>
+
+<span class="tok-go">For help on a particular command type, e.g., &#39;oacensus help -on run&#39;</span>
+</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This lists each of the available commands.</p>
+</div>
+<div class="paragraph">
+<p>Here is help on the <code>run</code> command which is the main command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus <span class="tok-nb">help</span> -on run
+<span class="tok-go">=======================</span>
+<span class="tok-go">Help for &#39;oacensus run&#39;</span>
+<span class="tok-go">=======================</span>
+<span class="tok-go">   Arguments:</span>
+<span class="tok-go">      cachedir - Directory to store cached scraped data.</span>
+<span class="tok-go">            [optional, defaults to &#39;.oacensus/cache/&#39;]</span>
+<span class="tok-go">             e.g. &#39;oacensus run --cachedir .oacensus/cache/&#39;</span>
+
+
+<span class="tok-go">      config - YAML file to read configuration from.</span>
+<span class="tok-go">            [optional, defaults to &#39;oacensus.yaml&#39;]</span>
+<span class="tok-go">             e.g. &#39;oacensus run --config oacensus.yaml&#39;</span>
+
+
+<span class="tok-go">      dbfile - Name of sqlite db file.</span>
+<span class="tok-go">            [optional, defaults to &#39;oacensus.sqlite3&#39;]</span>
+<span class="tok-go">             e.g. &#39;oacensus run --dbfile oacensus.sqlite3&#39;</span>
+
+
+<span class="tok-go">      profile - Whether to run in profiler (dev only).</span>
+<span class="tok-go">            [optional, defaults to &#39;False&#39;] e.g. &#39;oacensus run --profile False&#39;</span>
+
+
+<span class="tok-go">      progress - Whether to show progress indicators.</span>
+<span class="tok-go">            [optional, defaults to &#39;False&#39;] e.g. &#39;oacensus run --progress False&#39;</span>
+
+
+<span class="tok-go">      reports - Reports to run.</span>
+<span class="tok-go">            [optional, defaults to &#39;&#39;] e.g. &#39;oacensus run --reports &#39;</span>
+
+
+<span class="tok-go">      workdir - Directory to store temp working directories.</span>
+<span class="tok-go">            [optional, defaults to &#39;.oacensus/work/&#39;]</span>
+<span class="tok-go">             e.g. &#39;oacensus run --workdir .oacensus/work/&#39;</span>
+</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You can run reports as part of <code>run</code>, but you can also run reports separately
+after you have executed the <code>run</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus <span class="tok-nb">help</span> -on reports
+<span class="tok-go">===========================</span>
+<span class="tok-go">Help for &#39;oacensus reports&#39;</span>
+<span class="tok-go">===========================</span>
+<span class="tok-go">   Arguments:</span>
+<span class="tok-go">      dbfile - db file to use for reports</span>
+<span class="tok-go">            [optional, defaults to &#39;oacensus.sqlite3&#39;]</span>
+<span class="tok-go">             e.g. &#39;oacensus reports --dbfile oacensus.sqlite3&#39;</span>
+
+
+<span class="tok-go">      reports - reports to run</span>
+<span class="tok-go">            [optional, defaults to &#39;&#39;] e.g. &#39;oacensus reports --reports &#39;</span>
+</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To get a list of available scrapers or reports, use the <code>list</code> command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus <span class="tok-nb">help</span> -on list
+<span class="tok-go">========================</span>
+<span class="tok-go">Help for &#39;oacensus list&#39;</span>
+<span class="tok-go">========================</span>
+<span class="tok-go">   List the available scraper or reporter plugins.</span>
+
+<span class="tok-go">   Arguments:</span>
+<span class="tok-go">      alias - Optionally, only print help for the specified alias.</span>
+<span class="tok-go">            [optional, defaults to &#39;&#39;] e.g. &#39;oacensus list --alias &#39;</span>
+
+
+<span class="tok-go">      reports - Whether to list available reports.</span>
+<span class="tok-go">            [optional, defaults to &#39;False&#39;] e.g. &#39;oacensus list --reports False&#39;</span>
+
+
+<span class="tok-go">      scrapers - Whether to list available scrapers.</span>
+<span class="tok-go">            [optional, defaults to &#39;True&#39;] e.g. &#39;oacensus list --scrapers True&#39;</span>
+</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here are the available scrapers:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus list --scrapers
+
+
+<span class="tok-go">     alias: biomed</span>
+<span class="tok-go">     Scrape journal names from BioMed Central, an open access journal publisher.</span>
+
+<span class="tok-go">     This scraper obtains journal names, urls and ISSNs from the BioMed Central</span>
+<span class="tok-go">     website.</span>
+
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         data-file: file to save data under (bmc-journal-list.html)</span>
+<span class="tok-go">         url: url to scrape (http://www.biomedcentral.com/journals)</span>
+
+
+<span class="tok-go">     alias: crossref</span>
+<span class="tok-go">     Gets crossref information for all articles with DOIs in the database.</span>
+
+<span class="tok-go">     Currently this does nothing with the returned data.</span>
+
+<span class="tok-go">         base-url: Base url of crossref API (http://search.labs.crossref.org/dois)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+
+
+<span class="tok-go">     alias: doaj</span>
+<span class="tok-go">     Updates journals in the database with openness information from DOAJ.</span>
+
+<span class="tok-go">         base-url: Base url for accessing DOAJ. (http://www.doaj.org/doaj)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         data-file: File to save data under. (doaj.pickle)</span>
+<span class="tok-go">         standard-params: Params used in every request. ({&#39;uiLanguage&#39;: &#39;en&#39;, &#39;func&#39;: &#39;browse&#39;})</span>
+
+
+<span class="tok-go">     alias: elsevier</span>
+<span class="tok-go">     Scrape journal names from Elsevier website.</span>
+
+<span class="tok-go">         base-url: Base url to scrape. (http://www.elsevier.com/journals/title/)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         data-file: file to save data under (elsevier-journal-list.html)</span>
+<span class="tok-go">         non-alpha-pages: List of all pages to scrape which are named something other than a letter of the alphabet. ([&#39;other&#39;])</span>
+
+
+<span class="tok-go">     alias: oag</span>
+<span class="tok-go">     Gets license information for all articles with DOIs in the database.</span>
+
+<span class="tok-go">         base-url: Base url of OAG API (http://oag.cottagelabs.com/lookup/)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+
+
+<span class="tok-go">     alias: oai</span>
+<span class="tok-go">     Scrape OAI/PMH repositories.</span>
+
+<span class="tok-go">     Not finished. Doesn&#39;t do anything right now.</span>
+<span class="tok-go">     This has some ORA (Oxford University Research Archive) specific stuff in here.</span>
+
+<span class="tok-go">         base-objects-url: URL at which objects can be accessed by uuid. (None)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         data-file: internal data file for storage (oai.pickle)</span>
+<span class="tok-go">         from: &#39;from&#39; parameter, in &quot;YYYY-MM-DD&quot; format (None)</span>
+<span class="tok-go">         pmh-endpoint: Base url of OAI PMH interface to repository. (None)</span>
+<span class="tok-go">         set: &#39;set&#39; parameter (None)</span>
+<span class="tok-go">         until: &#39;until&#39; parameter, in &quot;YYYY-MM-DD&quot; format (None)</span>
+
+
+<span class="tok-go">     alias: orcid</span>
+<span class="tok-go">     Generate lists of articles for authors based on ORCID.</span>
+
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         orcid: ORCID of author to process, or a list of ORCIDS. (None)</span>
+<span class="tok-go">         orcid-data-file: File to save data under. (orcid.pickle)</span>
+
+
+<span class="tok-go">     alias: pubmed</span>
+<span class="tok-go">     Creates a single ArticleList and individual Article objects for all</span>
+<span class="tok-go">     articles returned from pubmed matching the [required] search query.</span>
+
+<span class="tok-go">         base-url: Base url of API. (http://eutils.ncbi.nlm.nih.gov/entrez/eutils/)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         delay: Time in seconds to delay between API requests. (1)</span>
+<span class="tok-go">         filepattern: Names of files which hold data in cache. (data_%04d.xml)</span>
+<span class="tok-go">         initial-ret-max: Maximum number of entries to return in the initial query. (5)</span>
+<span class="tok-go">         ncbi-db: Name of NCBI database to query. (pubmed)</span>
+<span class="tok-go">         ret-max: Maximum number of entries to return in any single query. (10000)</span>
+<span class="tok-go">         search: Search query to include. (None)</span>
+
+
+<span class="tok-go">     alias: scimago</span>
+<span class="tok-go">     Download Scimago journal info.</span>
+
+<span class="tok-go">         base-url: BASE url for downloading Scimago data. (http://www.scimagojr.com/journalrank.php)</span>
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         filename:  (scimago.html)</span>
+<span class="tok-go">         year: Year for which to return data. (2012)</span>
+
+
+<span class="tok-go">     alias: wiley</span>
+<span class="tok-go">     Scraper for Wiley journals.</span>
+
+<span class="tok-go">         cache: Location to copy cache files from. (None)</span>
+<span class="tok-go">         data-file:  (wiley-journals.xls)</span>
+<span class="tok-go">         header-row: Row in spreadsheet containing column headers. (5)</span>
+<span class="tok-go">         url:  (http://wileyonlinelibrary.com/journals-list)</span>
+</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here are the available reports:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus list --reports
+
+
+<span class="tok-go">     alias: excel</span>
+<span class="tok-go">     Dump all database models to a single excel workbook.</span>
+
+<span class="tok-go">         date-format-string: Excel style date format string. (D-MMM-YYYY)</span>
+<span class="tok-go">         filename: Name of file to write excel dump to. (dump.xls)</span>
+
+
+<span class="tok-go">     alias: personal-openness</span>
+<span class="tok-go">     Generate a personal openness report.</span>
+
+<span class="tok-go">         output-dir: Directory to output report. Should start with &#39;report-&#39; prefix (report-openness)</span>
+<span class="tok-go">         output-file: Name of report. (index.html)</span>
+<span class="tok-go">         template-dirs: Locations to look for template files. ([&#39;.&#39;, &#39;/home/ana/dev/oacensus-new/oacensus/reports/templates&#39;])</span>
+<span class="tok-go">         template-file: Path to template file. (openness.html)</span>
+</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_config_file_format">Config File Format</h3>
+<div class="paragraph">
+<p>Config files are written in YAML and should consist of a list of the scrapers
+to be run, in order, followed by an optional dictionary of custom settings to
+provide to the scraper.</p>
+</div>
+<div class="paragraph">
+<p>Here are some examples:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="yaml language-yaml"><span class="tok-c1">### &quot;pubmed&quot;</span>
+<span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">pubmed</span><span class="tok-p-Indicator">:</span>
+    <span class="tok-l-Scalar-Plain">search</span><span class="tok-p-Indicator">:</span> <span class="tok-s">&#39;&quot;Oxford</span><span class="tok-nv"> </span><span class="tok-s">University&quot;[affiliation]</span><span class="tok-nv"> </span><span class="tok-s">AND</span><span class="tok-nv"> </span><span class="tok-s">2012[pdat]&#39;</span>
+
+<span class="tok-c1">### &quot;oag&quot;</span>
+<span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">oag</span>
+
+<span class="tok-c1">### &quot;doaj&quot;</span>
+<span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">doaj</span><span class="tok-p-Indicator">:</span>
+    <span class="tok-l-Scalar-Plain">cache</span><span class="tok-p-Indicator">:</span> <span class="tok-s">&quot;/home/ana/dev/oacensus-new/examples/.doaj-cache&quot;</span>
+</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code class="yaml language-yaml"><span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">orcid</span><span class="tok-p-Indicator">:</span>
+    <span class="tok-l-Scalar-Plain">orcid</span><span class="tok-p-Indicator">:</span> <span class="tok-l-Scalar-Plain">0000-0002-0068-716X</span>
+
+<span class="tok-p-Indicator">-</span> <span class="tok-l-Scalar-Plain">oag</span>
+</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_writing_scrapers_and_reports">Writing Scrapers and Reports</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Scrapers and reports are implemented using the
+<a href="http://dexy.github.io/cashew/">cashew plugin system</a>.</p>
+</div>
+<div class="sect2">
+<h3 id="_scraper_design">Scraper Design</h3>
+<div class="paragraph">
+<p>Scrapers work in two phases. The first phase is <code>scrape</code> and the second phase
+is <code>process</code>. Results of the <code>scrape</code> phase are cached and, if no parameters have
+changed, re-used in subsequent calls. The <code>scrape</code> phase should do as much
+pre-processing as possible (for efficiency) but they should not do anything
+that depends on database state or on the ordering of scrapers. Anything which
+depends on state should occur in the <code>process</code> phase which is not cached.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_report_design">Report Design</h3>
+<div class="paragraph">
+<p>Reports take the harvested data and present it. Reports can be of any format.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-10-23 19:05:59 PDT
+Last updated 2013-10-25 17:53:15 PDT
 </div>
 </div>
 </body>

@@ -6,4 +6,5 @@
 - oag
 
 ### "doaj"
-#- doaj
+- doaj:
+    cache: "/home/ana/dev/oacensus-new/examples/.doaj-cache"
