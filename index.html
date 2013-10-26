@@ -450,6 +450,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li><a href="#_writing_scrapers_and_reports">Writing Scrapers and Reports</a></li>
 <li>
 <ul class="sectlevel2">
+<li><a href="#_orm">ORM</a></li>
 <li><a href="#_scraper_design">Scraper Design</a></li>
 <li><a href="#_report_design">Report Design</a></li>
 </ul>
@@ -1035,6 +1036,217 @@ provide to the scraper.</p>
 <a href="http://dexy.github.io/cashew/">cashew plugin system</a>.</p>
 </div>
 <div class="sect2">
+<h3 id="_orm">ORM</h3>
+<div class="paragraph">
+<p>Oacensus uses the <a href="http://peewee.readthedocs.org/">peewee ORM</a>.</p>
+</div>
+<div class="sect3">
+<h4 id="_article">Article</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>date_published</strong></p>
+</li>
+<li>
+<p><strong>doi</strong></p>
+</li>
+<li>
+<p><strong>free_to_read</strong></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>journal</strong></p>
+</li>
+<li>
+<p><strong>license</strong></p>
+</li>
+<li>
+<p><strong>nihm_id</strong></p>
+</li>
+<li>
+<p><strong>open_access</strong></p>
+</li>
+<li>
+<p><strong>open_access_source</strong></p>
+</li>
+<li>
+<p><strong>pmc_id</strong></p>
+</li>
+<li>
+<p><strong>pubmed_id</strong></p>
+</li>
+<li>
+<p><strong>source</strong></p>
+</li>
+<li>
+<p><strong>title</strong></p>
+</li>
+<li>
+<p><strong>url</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_articlelist">ArticleList</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>name</strong></p>
+</li>
+<li>
+<p><strong>orcid</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_articlelistmembership">ArticleListMembership</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>article</strong></p>
+</li>
+<li>
+<p><strong>article_list</strong></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_journal">Journal</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>country</strong></p>
+</li>
+<li>
+<p><strong>eissn</strong> <em>Electronic ISSN (EISSN) of journal.</em></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>iso_abbreviation</strong></p>
+</li>
+<li>
+<p><strong>issn</strong> <em>ISSN of journal.</em></p>
+</li>
+<li>
+<p><strong>issn_linking</strong></p>
+</li>
+<li>
+<p><strong>language</strong></p>
+</li>
+<li>
+<p><strong>license</strong></p>
+</li>
+<li>
+<p><strong>medline_ta</strong></p>
+</li>
+<li>
+<p><strong>nlm_unique_id</strong></p>
+</li>
+<li>
+<p><strong>open_access</strong> <em>Is this journal available as an open access journal?</em></p>
+</li>
+<li>
+<p><strong>open_access_source</strong> <em>Source of information (scraper alias) for open_access field.</em></p>
+</li>
+<li>
+<p><strong>publisher</strong> <em>Publisher object corresponding to journal publisher.</em></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated basic journal information.</em></p>
+</li>
+<li>
+<p><strong>start_year</strong></p>
+</li>
+<li>
+<p><strong>subject</strong></p>
+</li>
+<li>
+<p><strong>title</strong> <em>Name of journal.</em></p>
+</li>
+<li>
+<p><strong>url</strong> <em>Website of journal.</em></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_journallist">JournalList</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>name</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_journallistmembership">JournalListMembership</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>journal</strong></p>
+</li>
+<li>
+<p><strong>journal_list</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_publisher">Publisher</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>name</strong></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
 <h3 id="_scraper_design">Scraper Design</h3>
 <div class="paragraph">
 <p>Scrapers work in two phases. The first phase is <code>scrape</code> and the second phase
@@ -1056,7 +1268,7 @@ depends on state should occur in the <code>process</code> phase which is not cac
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-10-25 17:53:15 PDT
+Last updated 2013-10-25 18:54:17 PDT
 </div>
 </div>
 </body>
