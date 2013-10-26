@@ -2,7 +2,7 @@
 :toc:
 :source-highlighter: pygments
 
-== General Usage
+== Introduction
 
 This tool consists of several configurable data scrapers and parsers, and also
 configurable reporting tools.
@@ -13,10 +13,11 @@ stored in a cache.
 Many parsers work on the data provided from previous parsers, so you need to
 take into consideration the ordering of parsers.
 
-
 == Use Cases
 
 === Institutional Open Access Census
+
+==== User Story
 
 A librarian at Oxford University wishes to understand the amount of Open Access
 content, as defined in different ways, in the research they publish. They first
@@ -38,32 +39,54 @@ We'll retrieve a list of articles where the affiliation is Oxford University.
 To determine how to configure the pubmed query, we first review the docs for
 the `pubmed` scraper:
 
-{{ d['example1.sh|idio|shint|asciisyn']['scraper-docs'] }}
+{{ d['example1.sh|idio|shint|asciisyn']['pubmed-docs'] }}
 
 We only need to specify the `search` parameter:
 
 {{ d['example1.yaml|idio|asciisyn']['pubmed'] }}
 
-==== DOAJ metadata
+==== CrossRef Articles
+
+TBD.
+
+==== DOAJ Metadata
 
 The `doaj` scraper fetches the full listing of open access journals from DOAJ.
 
 Then, any journals in the database matching DOAJ ISSNs are updated with DOAJ
 information about openness and license information.
 
+{{ d['example1.sh|idio|shint|asciisyn']['doaj-docs'] }}
+
 We don't need to set any parameters:
 
 {{ d['example1.yaml|idio|asciisyn']['doaj'] }}
 
+(The `cache` parameter is for convenience of generating these docs reasonably
+ quickly - you should not use it unless you want to manually maintain a cache.
+ There is a cache maintained for you automatically.)
+
 ==== OAG Licensing Information
 
-The OAG service provides licensing information based on a DOI.
+The OAG scraper retrieves OAG metadata for any article in the database which has a DOI:
+
+{{ d['example1.sh|idio|shint|asciisyn']['oag-docs'] }}
+
+We don't need to set any parameters:
+
+{{ d['example1.yaml|idio|asciisyn']['oag'] }}
 
 ==== Running the Example
 
 {{ d['example1.sh|idio|shint|asciisyn']['run-example'] }}
 
+The `excel` report dumps each database table onto an excel worksheet for inspection.
+
+link:dump.xls[Excel Report]
+
 === Individual Openness Report
+
+==== User Story
 
 A researcher wishes to provide a report demonstrating that they are a good
 citizen in generating open content. They use their ORCID profile as a source of
@@ -74,9 +97,19 @@ their institutional repository.
 [2] "free-to-read" is a metadata element that Crossref will be shortly rolling
 out. It doesn't yet exist and will take some time to reach critical mass.
 
+==== Implementation
+
+For now this report is implementing just using OAG openness data.
+
+Here is the full project configuration:
+
 {{ d['example2.yaml|asciisyn'] }}
 
+Here is the run output:
+
 {{ d['example2.sh|idio|shint|asciisyn']['run'] }}
+
+And here is the resulting report:
 
 ++++
 <iframe src="report-openness/index.html" style="width: 800px; height: 350px;">
@@ -84,6 +117,8 @@ out. It doesn't yet exist and will take some time to reach critical mass.
 ++++
 
 === Topic Openness Report
+
+==== User Story
 
 A patient advocate wants to understand how much content related to their
 disease is available. They search PubMed to identify a set of articles and a
@@ -96,6 +131,8 @@ out. It doesn't yet exist and will take some time to reach critical mass.
 
 === RCUK Policy Compliance Report
 
+==== User Story
+
 A UK funder wishes to report on RCUK policy compliance. They use Gateway to
 Research to generate a list of publications relating to their funding.
 Compliance is provided via two routes. If the article is OA through the
@@ -104,4 +141,64 @@ available through a repository. The funder elects to search PMC, OpenAIRE, and
 a UK federated institutional repository search tool[3] to identify copies in
 repositories.
 
+== User Guide
+
+=== Command Line Interface
+
+The main `help` command is:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help'] }}
+
+This lists each of the available commands.
+
+Here is help on the `run` command which is the main command:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-run'] }}
+
+You can run reports as part of `run`, but you can also run reports separately
+after you have executed the `run` command:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-reports'] }}
+
+To get a list of available scrapers or reports, use the `list` command:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-list'] }}
+
+Here are the available scrapers:
+
+{{ d['cli.sh|idio|shint|asciisyn']['list-scrapers'] }}
+
+Here are the available reports:
+
+{{ d['cli.sh|idio|shint|asciisyn']['list-reports'] }}
+
+=== Config File Format
+
+Config files are written in YAML and should consist of a list of the scrapers
+to be run, in order, followed by an optional dictionary of custom settings to
+provide to the scraper.
+
+Here are some examples:
+
+{{ d['example1.yaml|asciisyn'] }}
+
+{{ d['example2.yaml|asciisyn'] }}
+
+== Writing Scrapers and Reports
+
+Scrapers and reports are implemented using the
+http://dexy.github.io/cashew/[cashew plugin system].
+
+=== Scraper Design
+
+Scrapers work in two phases. The first phase is `scrape` and the second phase
+is `process`. Results of the `scrape` phase are cached and, if no parameters have
+changed, re-used in subsequent calls. The `scrape` phase should do as much
+pre-processing as possible (for efficiency) but they should not do anything
+that depends on database state or on the ordering of scrapers. Anything which
+depends on state should occur in the `process` phase which is not cached.
+
+=== Report Design
+
+Reports take the harvested data and present it. Reports can be of any format.
 

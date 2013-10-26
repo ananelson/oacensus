@@ -8,3 +8,5 @@ cover
 env
 .dexy
 output/
+openarchives-listing.xml
+examples/*-cache
