@@ -4,6 +4,7 @@ oacensus is a standard Python package and can be installed in the standard
 ways. Here's one way to install, using pip, so any subsequent changes in the
 source are immediately effected:
 
+git clone https://github.com/ananelson/oacensus
 cd oacensus/
 sudo pip install -e .
 
@@ -30,3 +31,10 @@ Once lxml is installed then oacensus installation should proceed.
 
 If this proves to be a barrier then it can be removed as a standard dependency
 and only installed if pyoai is required or we can replace pyoai.
+
+## Optional Software
+
+Scrapers and reports might require additional software.
+
+For example, the Personal Openness Report uses numpy, scipy and matplotlib to
+generate the dotplot of open vs. total articles.
