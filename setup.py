@@ -22,7 +22,8 @@ setup(
             'pyoai>=2.4.4',
             'python-modargs>=1.7',
             'requests>=2.0.0',
-            'xlrd'
+            'xlrd',
+            'xlwt'
             ],
         name='oacensus',
         packages=find_packages(),
