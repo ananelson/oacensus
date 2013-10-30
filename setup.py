@@ -13,6 +13,7 @@ setup(
             },
         include_package_data = True,
         install_requires = [
+            'PyYAML',
             'beautifulsoup4',
             'cashew>=0.2.0',
             'inflection',
