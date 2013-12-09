@@ -160,13 +160,18 @@ class Pubmed(NCBI):
                     journal_title = journal_entry.findtext("Title")
                     journal_iso = journal_entry.findtext("ISOAbbreviation")
                     issn_entry = journal_entry.find("ISSN")
-                    issn_type = issn_entry.get("IssnType")
-                    if issn_type == "Electronic":
-                        issn = issn_entry.text
-                        eissn = issn_entry.text
+
+                    if issn_entry is None:
+                        issn = journal_iso
                     else:
-                        issn = issn_entry.text
-                        eissn = None
+                        issn_type = issn_entry.get("IssnType")
+
+                        if issn_type == "Electronic":
+                            issn = issn_entry.text
+                            eissn = issn_entry.text
+                        else:
+                            issn = issn_entry.text
+                            eissn = None
 
                     journal = Journal.create_or_update_by_issn({
                         'issn' : issn,
