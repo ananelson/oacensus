@@ -1,6 +1,6 @@
 from oacensus.exceptions import APIError
 from oacensus.scraper import Scraper
-import datetime
+import dateutil.parser
 import os
 import requests
 import time
@@ -117,11 +117,8 @@ class NCBI(Scraper):
 
     def parse_date(self, entry):
         if entry is not None:
-            return datetime.date(
-                int(entry.findtext('Year')),
-                int(entry.findtext('Month')),
-                int(entry.findtext('Day'))
-                )
+            datestring = '%s %s %s' % (entry.findtext('Year'), entry.findtext('Month'), entry.findtext('Day'))
+            return dateutil.parser.parse(datestring)
 
 class Pubmed(NCBI):
     """

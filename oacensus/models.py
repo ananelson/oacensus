@@ -20,24 +20,34 @@ class Publisher(ModelBase):
         return u"<Publisher {0}: {1}>".format(self.id, self.name)
 
 class Journal(ModelBase):
-    title = CharField(help_text="Name of journal.")
-    url = CharField(null=True, help_text="Website of journal.")
+    title = CharField(index=True,
+        help_text="Name of journal.")
+    url = CharField(null=True,
+        help_text="Website of journal.")
     publisher = ForeignKeyField(Publisher, null=True,
         help_text="Publisher object corresponding to journal publisher.")
-    source = CharField(help_text="Which scraper populated basic journal information.")
-    issn = CharField(null=True, help_text="ISSN of journal.")
-    eissn = CharField(null=True, help_text="Electronic ISSN (EISSN) of journal.")
+    source = CharField(
+        help_text="Which scraper populated basic journal information?")
+    issn = CharField(null=True, unique=True,
+        help_text="ISSN of journal.")
+    eissn = CharField(null=True,
+        help_text="Electronic ISSN (EISSN) of journal.")
 
     open_access = BooleanField(null=True,
         help_text="Is this journal available as an open access journal?")
     open_access_source = CharField(null=True,
-            help_text="Source of information (scraper alias) for open_access field.")
-    license = CharField(null=True)
+            help_text="Source of information (scraper alias) for open_access value.")
+    license = CharField(null=True,
+        help_text="Open source (or other) license on content.")
 
-    subject = CharField(null=True)
-    country = CharField(null=True)
-    language = CharField(null=True)
-    start_year = IntegerField(null=True)
+    subject = CharField(null=True,
+        help_text="Subject area which this journal deals with.")
+    country = CharField(null=True,
+        help_text="Country of publication for this journal.")
+    language = CharField(null=True,
+        help_text="Language(s) in which journal is published.")
+    start_year = IntegerField(null=True,
+        help_text="Whatever DOAJ means by 'start year'.")
 
     iso_abbreviation = CharField(null=True)
     medline_ta = CharField(null=True)
@@ -71,18 +81,24 @@ class Journal(ModelBase):
             pass
 
 class Article(ModelBase):
-    title = CharField()
-    doi = CharField(null=True)
-    date_published = DateField(null=True)
+    title = CharField(
+        help_text="Title of article.")
+    doi = CharField(null=True,
+        help_text="Digital object identifier for article.")
+    date_published = DateField(null=True,
+        help_text="Date on which article was published.")
     source = CharField()
-    journal = ForeignKeyField(Journal, null=True)
-    url = CharField(null=True)
+    journal = ForeignKeyField(Journal, null=True,
+        help_text="Journal object for journal in which article was published.")
+    url = CharField(null=True,
+        help_text="Web page for article information (and maybe content).")
 
     pubmed_id = CharField(null=True)
     nihm_id = CharField(null=True)
     pmc_id = CharField(null=True)
 
-    free_to_read = BooleanField(null=True)
+    free_to_read = BooleanField(null=True,
+            help_text="Is article 'free to read' as per CrossRef?")
     open_access = BooleanField(null=True)
     open_access_source = CharField(null=True)
     license = CharField(null=True)
@@ -140,6 +156,11 @@ class ArticleList(ModelBase):
 class ArticleListMembership(ModelBase):
     article_list = ForeignKeyField(ArticleList, related_name="memberships")
     article = ForeignKeyField(Article, related_name="memberships")
+
+try:
+    db.get_tables()
+except Exception:
+    db.init(":memory:")
 
 try:
     Article.create_table()

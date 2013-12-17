@@ -16,6 +16,7 @@ setup(
             'PyYAML',
             'beautifulsoup4',
             'cashew>=0.2.0',
+            'python-dateutil',
             'inflection',
             'orcid-python',
             'peewee>=2.0.0',

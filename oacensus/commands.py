@@ -32,7 +32,7 @@ def run():
         sys.stderr.write("interrupted!\n")
         sys.exit(1)
 
-def help_command(on=False):
+def help_command(on=False,help=False):
     args.help_command(prog, mod, default_cmd, on)
 
 def list_command(

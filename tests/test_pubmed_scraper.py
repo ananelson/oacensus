@@ -1,3 +1,6 @@
+from oacensus.db import db
+db.init(":memory:")
+
 from oacensus.commands import defaults
 from oacensus.scraper import Scraper
 
