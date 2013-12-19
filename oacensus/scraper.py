@@ -58,7 +58,7 @@ class Scraper(Plugin):
                 self.copy_work_dir_to_cache()
 
         print "  calling process method..."
-        self.process()
+        return self.process()
 
     def cache_dir(self):
         """

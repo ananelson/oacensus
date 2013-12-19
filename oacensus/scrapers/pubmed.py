@@ -238,3 +238,4 @@ class Pubmed(NCBI):
                     article_list.add_article(article)
 
         print "  ", article_list
+        return article_list

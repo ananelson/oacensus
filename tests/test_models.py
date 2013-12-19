@@ -1,6 +1,3 @@
-from oacensus.db import db
-db.init(":memory:")
-
 from oacensus.models import Article
 from oacensus.models import Journal
 from oacensus.models import JournalList
