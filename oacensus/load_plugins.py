@@ -1,6 +1,7 @@
 import oacensus.scrapers.biomedcentral
 import oacensus.scrapers.crossref
 import oacensus.scrapers.doaj
+import oacensus.scrapers.doilist
 import oacensus.scrapers.elsevier
 import oacensus.scrapers.oag
 import oacensus.scrapers.oai
