@@ -143,7 +143,7 @@ class ArticleList(ModelBase):
 
     def __unicode__(self):
         args = (len(self.articles()), self.name)
-        return u"<Article List {0}: {1}>".format(*args)
+        return u"<Article List ({0} articles): {1}>".format(*args)
 
     def add_article(self, article):
         ArticleListMembership(
