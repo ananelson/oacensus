@@ -1,8 +1,7 @@
-from oacensus.db import db
-db.init(":memory:")
-
 from oacensus.commands import defaults
 from oacensus.scraper import Scraper
+from oacensus.models import Article
+from datetime import date
 
 def test_pubmed_scraper():
     pubmed = Scraper.create_instance('pubmed', defaults)
@@ -11,3 +10,9 @@ def test_pubmed_scraper():
         }
     pubmed.update_settings(settings)
     pubmed.run()
+
+    assert Article.select().count() == 6
+
+    for article in Article.select():
+        assert article.title
+        assert isinstance(article.date_published, date)

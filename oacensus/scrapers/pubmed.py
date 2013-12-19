@@ -117,8 +117,20 @@ class NCBI(Scraper):
 
     def parse_date(self, entry):
         if entry is not None:
-            datestring = '%s %s %s' % (entry.findtext('Year'), entry.findtext('Month'), entry.findtext('Day'))
-            return dateutil.parser.parse(datestring)
+            year = entry.findtext("Year")
+            month = entry.findtext("Month")
+
+            day = entry.findtext("Day")
+
+            if day is None:
+                day = "1"
+
+            if month is None:
+                month = "1"
+
+            if year is not None:
+                datestring = '%s %s %s' % (year, month, day)
+                return dateutil.parser.parse(datestring)
 
 class Pubmed(NCBI):
     """
@@ -177,9 +189,17 @@ class Pubmed(NCBI):
                         })
 
                     # Parse article info
-
                     title = article_entry.findtext("ArticleTitle")
-                    date_published = self.parse_date(article_entry.find("ArticleDate"))
+
+                    # Parse date info
+                    date_published = None
+                    journal_pubdate_entry = journal_entry.find("JournalIssue").find("PubDate")
+                    article_date_entry = article_entry.find("ArticleDate")
+
+                    if journal_pubdate_entry is not None:
+                        date_published = self.parse_date(journal_pubdate_entry)
+                    elif article_date_entry is not None:
+                        date_published = self.parse_date(article_date_entry)
 
                     doi_entry = article_entry.find("ELocationID")
 
