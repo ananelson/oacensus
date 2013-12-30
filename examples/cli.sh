@@ -10,8 +10,11 @@ oacensus help -on reports
 ### "help-list"
 oacensus help -on list
 
-### "list-scrapers"
-oacensus list --scrapers
+### "list"
+oacensus list
 
-### "list-reports"
-oacensus list --reports
+### "help-scraper"
+oacensus help -scraper oag
+
+### "help-report"
+oacensus help -report excel

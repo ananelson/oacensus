@@ -19,6 +19,15 @@ class Publisher(ModelBase):
     def __unicode__(self):
         return u"<Publisher {0}: {1}>".format(self.id, self.name)
 
+    @classmethod
+    def create_or_update_by_name(cls, name):
+        try:
+            publisher = cls.get(cls.name == name)
+        except Publisher.DoesNotExist:
+            publisher = Publisher.create(name = name)
+
+        return publisher
+
 class Journal(ModelBase):
     title = CharField(index=True,
         help_text="Name of journal.")
@@ -32,6 +41,8 @@ class Journal(ModelBase):
         help_text="ISSN of journal.")
     eissn = CharField(null=True,
         help_text="Electronic ISSN (EISSN) of journal.")
+    doi = CharField(null=True, unique=True,
+        help_text="DOI for journal.")
 
     open_access = BooleanField(null=True,
         help_text="Is this journal available as an open access journal?")
@@ -106,6 +117,14 @@ class Article(ModelBase):
     def __unicode__(self):
         return u'{0}'.format(self.truncate_title())
 
+    def is_open_access(self):
+        if self.open_access is not None:
+            return self.open_access
+        elif self.journal is not None:
+            return self.journal.open_access
+        else:
+            return None
+
     @classmethod
     def create_or_update_by_doi(cls, args):
         try:
@@ -124,6 +143,12 @@ class JournalList(ModelBase):
     def __unicode__(self):
         args = (len(self.journals()), self.name)
         return u"<Journal List {0}: {1}>".format(*args)
+
+    def __len__(self):
+        return self.memberships.count()
+
+    def __getitem__(self, key):
+        return self.memberships[key].journal
 
     def add_journal(self, journal):
         JournalListMembership(
@@ -145,6 +170,12 @@ class ArticleList(ModelBase):
         args = (len(self.articles()), self.name)
         return u"<Article List ({0} articles): {1}>".format(*args)
 
+    def __len__(self):
+        return self.memberships.count()
+
+    def __getitem__(self, key):
+        return self.memberships[key].article
+
     def add_article(self, article):
         ArticleListMembership(
             article_list = self,
@@ -157,12 +188,7 @@ class ArticleListMembership(ModelBase):
     article_list = ForeignKeyField(ArticleList, related_name="memberships")
     article = ForeignKeyField(Article, related_name="memberships")
 
-try:
-    db.get_tables()
-except Exception:
-    db.init(":memory:")
-
-try:
+def create_db_tables():
     Article.create_table()
     ArticleList.create_table()
     ArticleListMembership.create_table()
@@ -170,5 +196,13 @@ try:
     JournalList.create_table()
     JournalListMembership.create_table()
     Publisher.create_table()
+
+try:
+    db.get_tables()
+except Exception:
+    db.init(":memory:")
+
+try:
+    create_db_tables()
 except sqlite3.OperationalError:
     pass

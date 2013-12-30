@@ -32,50 +32,83 @@ def run():
         sys.stderr.write("interrupted!\n")
         sys.exit(1)
 
-def help_command(on=False,help=False):
-    args.help_command(prog, mod, default_cmd, on)
+main_help = """
+Available commands:
 
-def list_command(
-        alias = '', # Optionally, only print help for the specified alias.
-        scrapers=True, # Whether to list available scrapers.
-        reports=False # Whether to list available reports.
+  help - Prints this help message or help for individual commands, scrapers or reports.
+  list - List all available scrapers and reports.
+  run  - Runs the oacensus tool.
+  reports - Runs additional reports using data from the last run.
+
+Run `oacensus help -on cmd` for detailed help on any of these commands.
+"""
+
+def help_command(
+        on=False, # Provide a command name to get help for an individual command.
+        scraper=False, # Provide a scraper alias to get help for an individual scraper.
+        report=False, # Provide a report alias to get help for an individua lreport.
         ):
     """
-    List the available scraper or reporter plugins.
+    Command line documentation for the oacensus tool.
+
+    Examples:
+
+    `oacensus help -on run`
+    `oacensus help -scraper oag`
+    `oacensus help -report excel`
     """
+    print ""
+    if on:
+        args.help_command(prog, mod, default_cmd, on)
+    elif scraper:
+        if scraper in Scraper.plugins:
+            print "%s Scraper" % scraper
+            instance = Scraper.create_instance(scraper)
+            print_help_for_instance(instance)
+        else:
+            print "No scraper or report matching alias %s was found." % scraper
+            sys.exit(1)
+    elif report:
+        if report in Report.plugins:
+            print "%s Report" % report
+            instance = Report.create_instance(report)
+            print_help_for_instance(instance)
+        else:
+            print "No scraper or report matching alias %s was found." % report
+            sys.exit(1)
+    else:
+        print main_help
+
+def print_help_for_instance(instance):
     nodoc = ['aliases', 'help']
-    instances = []
+    print ""
+    for line in instance.setting('help').splitlines():
+        print line
+    print ""
+    print "Settings:"
+    print ""
+    for setting_name in sorted(instance._instance_settings):
+        if setting_name in nodoc:
+            continue
+        setting_info = instance._instance_settings[setting_name]
+        print "%s %s: %s (default value: %s)" % (s, setting_name, setting_info[0], setting_info[1])
+    print ""
 
-    if scrapers:
-        if alias:
-            if alias in Scraper.plugins:
-                instances = [Scraper.create_instance(alias)]
-        else:
-            instances = Scraper
+def list_command():
+    """
+    List the available scrapers and reports.
+    """
+    print "Scrapers:"
+    print ""
 
-    if reports:
-        if alias:
-            if alias in Report.plugins:
-                instances = [Report.create_instance(alias)]
-        else:
-            instances = Report
+    for scraper in Scraper:
+        print "  ", scraper.alias
 
-    if alias and not instances:
-        print "No scraper or report matched '%s'" % alias
-
-    for instance in instances:
-        print "\n"
-        print s, "alias:", instance.alias
-        for line in instance.setting('help').splitlines():
-            print s, line
-        print ""
-        for setting_name in sorted(instance._instance_settings):
-            if setting_name in nodoc:
-                continue
-            setting_info = instance._instance_settings[setting_name]
-            print "%s %s: %s (%s)" % (s*2, setting_name, setting_info[0], setting_info[1])
-
-    print "\n"
+    print ""
+    print "Reports:"
+    print ""
+    for report in Report:
+        print "  ", report.alias
 
 def run_command(
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
@@ -86,6 +119,15 @@ def run_command(
         reports=defaults['reports'], # Reports to run.
         workdir=defaults['workdir'], # Directory to store temp working directories.
         ):
+    """
+    Runs the oacensus scrapers specified in the configuration file.
+
+    This is the main command for using the oacensus tool. It reads the
+    configuration specified in YAML and runs the requested scrapers in order
+    (using data from the cache if available). Data will be stored in a sqlite3
+    database. After data has been processed and stored in the database, reports
+    may be run which will present the data.
+    """
 
     start_time = datetime.datetime.now()
 
@@ -127,7 +169,7 @@ def run_command(
         else:
             raise Exception("Unexpected type %s" % type(item))
 
-        print "running", alias
+        print "running", alias, "scraper"
         scraper = Scraper.create_instance(alias, locals())
 
         try:
@@ -146,7 +188,7 @@ def run_command(
         else:
             scraper.run()
 
-    print "scraping and parsing completed in", datetime.datetime.now() - start_time
+    print "scraping completed in", datetime.datetime.now() - start_time
     if reports:
         run_reports(reports)
 

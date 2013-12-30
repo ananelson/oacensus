@@ -1,12 +1,15 @@
 from oacensus.exceptions import APIError
-from oacensus.scraper import Scraper
+from oacensus.models import Article
+from oacensus.models import ArticleList
+from oacensus.models import Journal
+from oacensus.scraper import ArticleScraper
 import dateutil.parser
 import os
 import requests
 import time
 import xml.etree.ElementTree as ET
 
-class NCBI(Scraper):
+class NCBI(ArticleScraper):
     """
     Base class for scrapers querying NCBI databases (including pubmed).
     """
@@ -143,9 +146,6 @@ class Pubmed(NCBI):
             }
 
     def process(self):
-        from oacensus.models import ArticleList
-        from oacensus.models import Article
-        from oacensus.models import Journal
 
         article_list = ArticleList.create(
                 name = "pubmed search: %s" % self.setting('search')

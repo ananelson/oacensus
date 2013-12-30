@@ -1,9 +1,11 @@
-from oacensus.scraper import Scraper
+from oacensus.models import Article
+from oacensus.models import ArticleList
+from oacensus.scraper import ArticleScraper
 import cPickle as pickle
 import orcid
 import os
 
-class Orcid(Scraper):
+class Orcid(ArticleScraper):
     """
     Generate lists of articles for authors based on ORCID.
     """
@@ -30,9 +32,6 @@ class Orcid(Scraper):
             pickle.dump(responses, f)
 
     def process(self):
-        from oacensus.models import Article
-        from oacensus.models import ArticleList
-
         orcid_filepath = os.path.join(self.cache_dir(), self.setting('orcid-data-file'))
         with open(orcid_filepath, 'rb') as f:
             responses = pickle.load(f)

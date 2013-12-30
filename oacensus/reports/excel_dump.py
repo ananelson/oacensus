@@ -1,8 +1,12 @@
+from oacensus.models import Article
+from oacensus.models import Journal
+from oacensus.models import ModelBase
+from oacensus.models import Publisher
 from oacensus.report import Report
 import datetime
+import inflection
 import os
 import xlwt
-import inflection
 
 class ExcelDump(Report):
     """
@@ -15,12 +19,6 @@ class ExcelDump(Report):
             }
 
     def run(self):
-        from oacensus.models import Article
-        from oacensus.models import Journal
-        from oacensus.models import Publisher
-
-        from oacensus.models import ModelBase
-
         date_style = xlwt.XFStyle()
         date_style.num_format_str = self.setting('date-format-string')
 

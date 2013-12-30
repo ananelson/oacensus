@@ -1,12 +1,14 @@
 from bs4 import BeautifulSoup
-from oacensus.scraper import Scraper
+from oacensus.models import JournalList
+from oacensus.models import Publisher
+from oacensus.scraper import JournalScraper
 import cPickle as pickle
 import os
 import re
-import string
 import requests
+import string
 
-class ElsevierJournals(Scraper):
+class ElsevierJournals(JournalScraper):
     """
     Scrape journal names from Elsevier website.
     """
@@ -98,23 +100,21 @@ class ElsevierJournals(Scraper):
             pickle.dump(journals, f)
 
     def process(self):
-        from oacensus.models import JournalList
-        from oacensus.models import Publisher
-        from oacensus.models import Journal
-
-        elsevier_list = JournalList.create(name="Elsevier Journals")
-        publisher = Publisher.create(name="Elsevier")
-
         filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
         with open(filepath, 'rb') as f:
             journals = pickle.load(f)
 
+        elsevier_list = JournalList.create(name="Elsevier Journals")
+        publisher = Publisher.create(name="Elsevier")
         for journal_info in journals:
-                journal = Journal.create(
-                        source=self.alias,
-                        title = journal_info['title'],
-                        issn = journal_info['issn'],
-                        url = journal_info['url'],
-                        publisher = publisher )
+            issn = journal_info['issn']
+            params = {
+                    'title' : journal_info['title'],
+                    'issn' : journal_info['issn'],
+                    'url' : journal_info['url'],
+                    'publisher' : publisher
+                    }
 
-                elsevier_list.add_journal(journal)
+            self.create_or_modify_journal(issn, params, elsevier_list)
+
+        return elsevier_list

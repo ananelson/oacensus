@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
-from oacensus.scraper import Scraper
-import requests
+from oacensus.scraper import JournalScraper
+from oacensus.utils import urlretrieve
 import os
 
-class ScimagoJournals(Scraper):
+class ScimagoJournals(JournalScraper):
     """
     Download Scimago journal info.
     """
@@ -31,22 +31,11 @@ class ScimagoJournals(Scraper):
                 'out' : 'xls'
                 }
 
-        result = requests.get(
-                self.setting('base-url'),
-                params=params,
-                stream=True
-                )
-
         filepath = os.path.join(self.work_dir(), self.setting('filename'))
-        with open(filepath, "wb") as f:
-            for block in result.iter_content(1024):
-                if not block:
-                    break
-                f.write(block)
+        url = self.setting('base-url')
+        urlretrieve(url, params, filepath)
 
     def process(self):
-        from oacensus.models import Journal
-
         filepath = os.path.join(self.cache_dir(), self.setting('filename'))
 
         with open(filepath, 'rb') as f:
@@ -71,19 +60,13 @@ class ScimagoJournals(Scraper):
                 cells = row.find_all("td")
 
                 issn = cells[2].text.strip("=\"")
-                journal = Journal.by_issn(issn)
-                if journal:
-                    print "found matching journal", journal
 
-                #params = {
-                #        'title' : cells[1].text.strip(),
-                #        'issn' : cells[2].text.strip("=\""),
-                #        'country' : cells[12].text.strip()
-                #        }
+                if issn == '0':
+                    continue
 
-                #if params['issn'] != '0':
-                #    Journal.create_or_update_by_issn(params)
+                params = {
+                        'title' : cells[1].text.strip(),
+                        'country' : cells[12].text.strip()
+                        }
 
-
-#row is <tr><td>20544</td><td>Zoologische Mededelingen</td><td>="18762174"</td><td>0,000</td><td>0</td><td>1</td><td>0</td><td>18</td><td>0</td><td>0</td><td>0,00</td><td>18,00</td><td>Netherlands</td></tr>
-            
+                self.create_or_modify_journal(issn, params)

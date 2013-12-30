@@ -1,17 +1,272 @@
 = OACensus Documentation
-:toc:
+:icons: font
 :source-highlighter: pygments
+:toc: right
+:toclevels: 5
 
 == Introduction
 
-This tool consists of several configurable data scrapers and parsers, and also
-configurable reporting tools.
+This is documentation for the OACensus tool. To jump right in and use the tool,
+check out the <<_quickstart>> section. More detailed documentation is in the
+<<_user_guide>>. An overview of all the standard scrapers is in the
+<<_scrapers>> section, and the standard reports are documented in the
+<<_reports>> section. The <<_writing_scrapers_and_reports>> section covers how
+to write your own new scrapers and reports. The <<_use_cases>> section
+describes some example scenarios for using this tool.
 
-Scraping is handled in a separate step from parsing, and scraped pages are
-stored in a cache.
+== The oacensus Tool
 
-Many parsers work on the data provided from previous parsers, so you need to
-take into consideration the ordering of parsers.
+The oacensus tool consists of several configurable data scrapers and reporting
+tools. It is written in Python.
+
+== Quickstart
+
+{% set config_filename = "example-orcid.yaml" %}
+
+Here is an example configuration file named `{{ config_filename }}`:
+
+{{ d[ config_filename + '|asciisyn'] }}
+
+The order in which the scrapers are specified *is* important.
+
+This uses the `orcid` scraper:
+
+{{ d['example2.sh|idio|shint|asciisyn']['help-orcid'] }}
+
+Followed by the `oag` scraper:
+
+{{ d['example2.sh|idio|shint|asciisyn']['help-oag'] }}
+
+This is run via:
+
+{{ d['example2.sh|idio|shint|asciisyn']['run'] }}
+
+And a personal openness report is generated:
+
+++++
+<iframe src="report-openness/index.html" style="width: 800px; height: 350px;">
+</iframe>
+++++
+
+== User Guide
+
+The `oacensus` tool runs scrapers to download and process data, and then runs
+reports to present the data. You specify the scrapers in a configuration file,
+and reports are specified on the command line.
+
+=== Config File Format
+
+Config files are written in YAML and should consist of a list of the scraper
+aliases to be run, in order. Each scraper alias may be followed by an optional
+dictionary of custom settings to provide to the scraper.
+
+Here is an example:
+
+{{ d['example-orcid.yaml|asciisyn'] }}
+
+In this case we are running the `orcid` scraper followed by the `oag` scraper,
+and the `orcid` scraper has a custom setting specified, confusingly having the
+setting name `orcid`.
+
+You can look at the documentation for each scraper to see its available settings.
+
+=== Command Line Interface
+
+The command line interface is documented via command line help.
+
+The output from the `help` command is:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help'] }}
+
+This lists each of the available commands.
+
+Here is detailed help on the `run` command:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-run'] }}
+
+You can run reports as part of `run`, but you can also run reports separately
+after you have executed the `run` command:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-reports'] }}
+
+To get a list of available scrapers or reports, use the `list` command:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-list'] }}
+
+Here are the built-in scrapers and reports:
+
+{{ d['cli.sh|idio|shint|asciisyn']['list'] }}
+
+You can get help on individual scrapers:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-scraper'] }}
+
+Or individual reports:
+
+{{ d['cli.sh|idio|shint|asciisyn']['help-report'] }}
+
+=== Performance and Caching
+
+Some scrapers have to fetch a lot of data and will be slow to run. The data
+will be cached after the first run and re-used if the parameters are the same.
+
+You can use the `--progress` option to have progress notices printed out while
+scrapers run.
+
+See also: https://github.com/ananelson/oacensus/issues/3
+
+== Scrapers
+
+It is up to users to specify scrapers in a sensible order. Some scrapers use
+the database state from previously-run scrapers in the current batch to do
+their work. The database is reset at the start of each batch run, and entries
+will be re-populated from cached or just-downloaded data sources.
+
+=== Open Access Data Sources
+
+We can obtain Open Access information at the article or the journal level.
+
+Journal-level open access data is obtained by querying a publisher's site or an
+aggregation service like Directory of Open Access Journals.
+
+Article-level open access data is obtained by querying the Open Article Gauge
+(OAG).
+
+To some extent, obtaining journal level data and then applying that to
+individual articles within the oacensus tool is a duplication of the work done
+by the OAG, but querying the OAG requires a DOI for each article, and this is
+not always available.
+
+Article-level open access data is stored in the `open_access` field in the
+Article data model. The `is_open_access()` method of an Article object will use
+both the `open_access` field on the Article object and the `open_access` field
+on the associated Journal object (if any) to determine the openness of the
+article.
+
+=== Journal Scrapers
+
+Journal scrapers should typically be run first in most workflows.
+
+The `JournalScraper` class implements a `create_or_modify_journal` method which
+should be used as the standard method to add new journal entries. This method
+looks for an existing journal having the ISSN and, if it finds it, it modifies
+the existing entry with only those fields specified in `update_journal_fields`.
+If there is not an existing journal corresponding to the ISSN, all provided
+data fields are used to create a new journal entry. If a JournalList is
+provided, the created or modified journal is added to that list (journals can
+be linked to multiple journal lists).
+
+If the desired behavior is to only modify existing journals, then the
+`add-new-journals` setting can be set to False.
+
+Unless this paradigm does not fit, the preferred method is to use
+`create_or_modify_journal` rather than using the `Journal.create` method
+directly.
+
+Don't forget to specify `update_journal_fields` for each JournalScraper so that
+oacensus knows how to handle journals which already exist. The default is an
+empty list meaning that no data will be updated.
+
+==== BiomedCentral journals
+
+The `biomed` scraper creates a Journal entry for each journal published by BioMed Central.
+
+==== Wiley
+
+Creates Journal entry for each journal published by Wiley.
+
+==== Elsevier
+
+Creates Journal entry for each journal published by Elsevier.
+
+==== DOAJ
+
+Gets information about open access journals from DOAJ, using new website's CSV download option.
+
+==== Scimago
+
+Not complete. Returns Scimago journal ranking information.
+
+=== Articles & Article Lists
+
+Here are scrapers which create article entries, sometimes organized into lists.
+
+Where possible, articles are assigned to journals by linking on the journal ISSN.
+
+==== Pubmed scraper
+
+The Pubmed scraper obtains articles returned from a search of Pubmed.
+
+==== DOI List scraper
+
+Creates articles from an external list of DOIs.
+
+=== Article Info
+
+Scrapers which add information to existing article entries.
+
+==== Open Article Gauge
+
+This scraper updates open access-related attributes for an article using data
+retrieved from the OAG API.
+
+[source,python]
+----
+{{ d['/oacensus/scrapers/oag.py|pydoc']['OAG.update_article_with_license_info:source'] }}
+----
+
+==== Crossref
+
+Obtain information from Crossref for all articles having a DOI.
+
+Currently, this scraper does not modify any data.
+
+== Reports
+
+Built-in reports.
+
+== Writing Scrapers and Reports
+
+Scrapers and reports are implemented using the
+http://dexy.github.io/cashew/[cashew plugin system].
+
+If you implement a custom scraper or report, make sure to add an import statement in the
+https://github.com/ananelson/oacensus/blob/master/oacensus/load_plugins.py[load
+plugins module] so that Cashew will register the plugin.
+
+=== ORM
+
+Oacensus uses the http://peewee.readthedocs.org/[peewee ORM].
+
+{% set models = d['models_info.json'].from_json() %}
+
+{% for model_name in sorted(models) %}
+==== {{ model_name }}
+
+Fields:
+
+{% for field_name in sorted(models[model_name]) -%}
+{% set field_info = models[model_name][field_name] -%}
+- *{{ field_name }}* {{ "_%s_" % field_info['help'] if field_info['help'] else '' }} {{ "[unique]" if field_info['unique'] else '' }}
+
+{% endfor -%}
+
+{% endfor %}
+
+
+=== Scraper Design
+
+Scrapers work in two phases. The first phase is `scrape` and the second phase
+is `process`. Results of the `scrape` phase are cached and, if no parameters have
+changed, re-used in subsequent calls. The `scrape` phase should do as much
+pre-processing as possible (for efficiency) but they should not do anything
+that depends on database state or on the ordering of scrapers. Anything which
+depends on state should occur in the `process` phase which is not cached.
+
+=== Report Design
+
+Reports take the harvested data and present it. Reports can be of any format.
+
 
 == Use Cases
 
@@ -43,11 +298,21 @@ the `pubmed` scraper:
 
 We only need to specify the `search` parameter:
 
-{{ d['example1.yaml|idio|asciisyn']['pubmed'] }}
+{{ d['example-oxford-2012.yaml|idio|asciisyn']['pubmed'] }}
 
 ==== CrossRef Articles
 
 TBD.
+
+==== OAG Licensing Information
+
+The OAG scraper retrieves OAG metadata for any article in the database which has a DOI:
+
+{{ d['example1.sh|idio|shint|asciisyn']['oag-docs'] }}
+
+We don't need to set any parameters:
+
+{{ d['example-oxford-2012.yaml|idio|asciisyn']['oag'] }}
 
 ==== DOAJ Metadata
 
@@ -60,21 +325,7 @@ information about openness and license information.
 
 We don't need to set any parameters:
 
-{{ d['example1.yaml|idio|asciisyn']['doaj'] }}
-
-(The `cache` parameter is for convenience of generating these docs reasonably
- quickly - you should not use it unless you want to manually maintain a cache.
- There is a cache maintained for you automatically.)
-
-==== OAG Licensing Information
-
-The OAG scraper retrieves OAG metadata for any article in the database which has a DOI:
-
-{{ d['example1.sh|idio|shint|asciisyn']['oag-docs'] }}
-
-We don't need to set any parameters:
-
-{{ d['example1.yaml|idio|asciisyn']['oag'] }}
+{{ d['example-oxford-2012.yaml|idio|asciisyn']['doaj'] }}
 
 ==== Running the Example
 
@@ -103,7 +354,7 @@ For now this report is implementing just using OAG openness data.
 
 Here is the full project configuration:
 
-{{ d['example2.yaml|asciisyn'] }}
+{{ d['example-orcid.yaml|asciisyn'] }}
 
 Here is the run output:
 
@@ -140,85 +391,3 @@ publisher website it must have a CC BY license (OAG) or it must be made
 available through a repository. The funder elects to search PMC, OpenAIRE, and
 a UK federated institutional repository search tool[3] to identify copies in
 repositories.
-
-== User Guide
-
-=== Command Line Interface
-
-The main `help` command is:
-
-{{ d['cli.sh|idio|shint|asciisyn']['help'] }}
-
-This lists each of the available commands.
-
-Here is help on the `run` command which is the main command:
-
-{{ d['cli.sh|idio|shint|asciisyn']['help-run'] }}
-
-You can run reports as part of `run`, but you can also run reports separately
-after you have executed the `run` command:
-
-{{ d['cli.sh|idio|shint|asciisyn']['help-reports'] }}
-
-To get a list of available scrapers or reports, use the `list` command:
-
-{{ d['cli.sh|idio|shint|asciisyn']['help-list'] }}
-
-Here are the available scrapers:
-
-{{ d['cli.sh|idio|shint|asciisyn']['list-scrapers'] }}
-
-Here are the available reports:
-
-{{ d['cli.sh|idio|shint|asciisyn']['list-reports'] }}
-
-=== Config File Format
-
-Config files are written in YAML and should consist of a list of the scrapers
-to be run, in order, followed by an optional dictionary of custom settings to
-provide to the scraper.
-
-Here are some examples:
-
-{{ d['example1.yaml|asciisyn'] }}
-
-{{ d['example2.yaml|asciisyn'] }}
-
-== Writing Scrapers and Reports
-
-Scrapers and reports are implemented using the
-http://dexy.github.io/cashew/[cashew plugin system].
-
-=== ORM
-
-Oacensus uses the http://peewee.readthedocs.org/[peewee ORM].
-
-{% set models = d['models_info.json'].from_json() %}
-
-{% for model_name in sorted(models) %}
-==== {{ model_name }}
-
-Fields:
-
-{% for field_name in sorted(models[model_name]) -%}
-{% set field_info = models[model_name][field_name] -%}
-- *{{ field_name }}* {{ "_%s_" % field_info['help'] if field_info['help'] else '' }}
-
-{% endfor -%}
-
-{% endfor %}
-
-
-=== Scraper Design
-
-Scrapers work in two phases. The first phase is `scrape` and the second phase
-is `process`. Results of the `scrape` phase are cached and, if no parameters have
-changed, re-used in subsequent calls. The `scrape` phase should do as much
-pre-processing as possible (for efficiency) but they should not do anything
-that depends on database state or on the ordering of scrapers. Anything which
-depends on state should occur in the `process` phase which is not cached.
-
-=== Report Design
-
-Reports take the harvested data and present it. Reports can be of any format.
-

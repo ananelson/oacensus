@@ -1,9 +1,11 @@
-from oacensus.scraper import Scraper
+from oacensus.models import JournalList
+from oacensus.models import Publisher
+from oacensus.scraper import JournalScraper
 import os
 import urllib
 import xlrd
 
-class WileyScraper(Scraper):
+class WileyScraper(JournalScraper):
     """
     Scraper for Wiley journals.
     """
@@ -11,7 +13,7 @@ class WileyScraper(Scraper):
     _settings = {
             'url' : "http://wileyonlinelibrary.com/journals-list",
             'header-row' : ("Row in spreadsheet containing column headers.", 5),
-            'data-file' : "wiley-journals.xls"
+            'data-file' : ("file to save data under", "wiley-journals.xls")
             }
 
     def scrape(self):
@@ -19,10 +21,6 @@ class WileyScraper(Scraper):
         urllib.urlretrieve(self.setting('url'), filepath)
 
     def process(self):
-        from oacensus.models import JournalList
-        from oacensus.models import Publisher
-        from oacensus.models import Journal
-
         filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
 
         wb = xlrd.open_workbook(filepath, on_demand=True)
@@ -51,7 +49,7 @@ class WileyScraper(Scraper):
 
         for i in range(start, max_row):
             if i % 100 == 0:
-                print "  processing row", i
+                self.print_progress("  processing row %s" % i)
 
             try:
                 values = sheet.row_values(i, 0, 10)
@@ -59,19 +57,19 @@ class WileyScraper(Scraper):
                 found_end = True
                 break
 
-            journal = Journal.create(
-                source = self.alias,
-                issn = values[issn_col],
-                eissn = values[eissn_col],
-                doi = values[doi_col],
-                title = values[title_col],
-                subject = values[subject_col],
-                publisher = publisher
-                )
+            issn = values[issn_col]
 
-            journal_list.add_journal(journal)
+            args = {
+                    'eissn' :  values[eissn_col],
+                    'doi' : values[doi_col],
+                    'title' : values[title_col],
+                    'subject' : values[subject_col],
+                    'publisher' : publisher
+                    }
+
+            self.create_or_modify_journal(issn, args, journal_list)
 
         if not found_end:
             raise Exception("did not find end, may need to increase max")
 
-        print journal_list
+        return journal_list
