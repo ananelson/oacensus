@@ -91,7 +91,7 @@ class InstitutionalReport(JinjaReport):
             n_articles = len([a for a in yr_articles])
             n_doi = len([a for a in yr_articles if a.doi])
             n_cc_by = len([a for a in yr_articles if (a.open_access if a is not None else 0)])
-            n_doaj = len([a for a in yr_articles if (a.journal.open_access if (a is not None or a.journal is not None) else 0)])
+            n_doaj = year#len([a for a in yr_articles if (a.journal.open_access if (a is not None or a.journal is not None) else 0)])
 
             total_articles.append(n_articles)
             have_dois.append(n_doi)
