@@ -196,13 +196,3 @@ def create_db_tables():
     JournalList.create_table()
     JournalListMembership.create_table()
     Publisher.create_table()
-
-try:
-    db.get_tables()
-except Exception:
-    db.init(":memory:")
-
-try:
-    create_db_tables()
-except sqlite3.OperationalError:
-    pass
