@@ -14,10 +14,12 @@ class CrossrefJournals(JournalScraper):
     """
     Gets crossref information about all available journal titles.
     """
-    aliases = ['xreftitles', 'crossreftitles']
+    aliases = ['crossrefjournals']
 
     _settings = {
+            'add-new-journals' : True,
             'csv-url' : ("URL to download CSV file.", "http://www.crossref.org/titlelist/titleFile.csv"),
+            'encoding' : 'utf-8',
             'data-file' : ("File to save data under.", "crossref.csv")
             }
 
@@ -45,8 +47,14 @@ class CrossrefJournals(JournalScraper):
                 else:
                     issn = raw_issn
 
+                if not "-" in issn:
+                    issn = "%s-%s" % (issn[0:4], issn[4:8])
+
+                def clean_title(text):
+                    return text.replace("\\", "").replace("\"", "")
+
                 args = {
-                        'title' : row['JournalTitle'].strip("\"\\"),
+                        'title' : clean_title(row['JournalTitle']),
                         'doi' : row['doi'],
                         'publisher' : Publisher.create_or_update_by_name(row['Publisher'])
                         }
