@@ -85,13 +85,13 @@ class InstitutionalReport(JinjaReport):
             startdate = datetime.datetime(year, 1, 1)
             enddate = datetime.datetime(year, 12, 31, 23, 59, 59)
             yr_articles = Article.select().where(
-                                    Article.date_published > startdate |
+                                    Article.date_published >= startdate |
                                     Article.date_published < enddate
                                                 )
             n_articles = len([a for a in yr_articles])
             n_doi = len([a for a in yr_articles if a.doi])
             n_cc_by = len([a for a in yr_articles if (a.open_access if a is not None else 0)])
-            n_doaj = len([a for a in yr_articles if (a.journal.open_access if a is not None else 0)])
+            n_doaj = len([a for a in yr_articles if (a.journal.open_access if (a is not None or a.journal is not None) else 0)])
 
             total_articles.append(n_articles)
             have_dois.append(n_doi)
