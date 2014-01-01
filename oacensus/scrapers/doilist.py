@@ -69,7 +69,7 @@ class DOIList(ArticleScraper):
                         source = self.setting('source')
                         )
 
-                print article
+                #print article
                 article_list.add_article(article)
 
         print "  ", article_list

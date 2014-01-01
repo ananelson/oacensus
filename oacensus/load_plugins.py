@@ -13,3 +13,4 @@ import oacensus.scrapers.rcukgtr
 
 import oacensus.reports.excel_dump
 import oacensus.reports.personal_openness
+import oacensus.reports.institution
