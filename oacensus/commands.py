@@ -2,6 +2,7 @@ from modargs import args
 from oacensus.db import db
 from oacensus.exceptions import ConfigFileFormatProblem
 from oacensus.exceptions import UserFeedback
+from oacensus.models import create_db_tables
 from oacensus.report import Report
 from oacensus.scraper import Scraper
 from oacensus.utils import defaults
@@ -142,6 +143,7 @@ def run_command(
         os.remove(dbfile)
 
     db.init(dbfile)
+    create_db_tables()
 
     for item in conf:
         if isinstance(item, basestring):

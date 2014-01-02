@@ -171,6 +171,7 @@ class JournalScraper(Scraper):
         return journal
 
     def create_new_journal(self, issn, args):
+        args['issn'] = issn
         args['source'] = self.alias
         return Journal.create(**args)
 

@@ -41,7 +41,7 @@ class Journal(ModelBase):
         help_text="ISSN of journal.")
     eissn = CharField(null=True,
         help_text="Electronic ISSN (EISSN) of journal.")
-    doi = CharField(null=True, unique=True,
+    doi = CharField(null=True,
         help_text="DOI for journal.")
 
     open_access = BooleanField(null=True,
@@ -196,13 +196,3 @@ def create_db_tables():
     JournalList.create_table()
     JournalListMembership.create_table()
     Publisher.create_table()
-
-try:
-    db.get_tables()
-except Exception:
-    db.init(":memory:")
-
-try:
-    create_db_tables()
-except sqlite3.OperationalError:
-    pass
