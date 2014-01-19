@@ -15,7 +15,7 @@ class DoajJournals(JournalScraper):
 
     _settings = {
             "csv-url" : ("Base url for accessing DOAJ.", "http://www.doaj.org/csv"),
-            'update-journal-fields' : ["open-access", "open-access-source", "license"],
+            'update-journal-fields' : ["open_access", "open_access_source", "license"],
             'data-file' : ("File to save data under.", "doaj.csv")
             }
 
@@ -55,6 +55,6 @@ class DoajJournals(JournalScraper):
                         'open_access' : True
                         }
 
-                self.create_or_modify_journal(issn, params, doaj_list)
+                j = self.create_or_modify_journal(issn, params, doaj_list)
 
         return doaj_list

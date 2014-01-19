@@ -1,5 +1,6 @@
 import urlparse
 import requests
+import datetime
 
 defaults = {
     'cachedir' : '.oacensus/cache/',
@@ -36,3 +37,34 @@ def parse_coins(raw_coins):
 
 def parse_crossref_coins(crossref_info):
     return parse_coins(crossref_coins(crossref_info))
+
+def parse_datestring_to_date(date_string):
+    """
+    Utility function for parsing datestrings in various formats
+    """
+
+    date = None
+    for format in [ '%Y',
+                    '%Y-%m',
+                    '%Y-%m-%d',
+                    '%d-%m-%Y',
+                    '%d/%m/%Y',
+                    '%Y-%b',
+                    '%b-%Y',
+                    '%b %Y',
+                    '%Y %b',
+                    '%d %b %Y',
+                    '%b %d %Y',
+                    '%d %B %Y',
+                    '%B %d %Y'
+                    ]:
+        try:
+            date = datetime.datetime.strptime(date_string, format)
+            break
+        except ValueError:
+            pass
+
+    return date
+
+
+

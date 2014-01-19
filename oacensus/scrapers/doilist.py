@@ -5,6 +5,7 @@ from oacensus.utils import parse_crossref_coins
 import json
 import os
 import requests
+import datetime
 
 class DOIList(ArticleScraper):
     """
@@ -62,14 +63,17 @@ class DOIList(ArticleScraper):
                 print coins.keys()
                 print coins
                 print crossref_info.keys()
+                year = crossref_info['year']
+                year = int(year) if year is not None else 1900
 
                 article = Article.create(
                         title = crossref_info['title'],
                         doi = doi,
+                        date_published = datetime.date(year, 1, 1),
                         source = self.setting('source')
                         )
 
-                print article
+                #print article
                 article_list.add_article(article)
 
         print "  ", article_list
