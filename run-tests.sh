@@ -1,3 +1,5 @@
+set -e
+
 CACHE_DIR=".oacensus"
 
 echo "Removing cache at $CACHE_DIR"

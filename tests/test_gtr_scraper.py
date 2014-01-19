@@ -2,6 +2,7 @@ from oacensus.commands import defaults
 from oacensus.scraper import Scraper
 from datetime import date
 import re
+from nose.exc import SkipTest
 
 TEST_PROJECT_ID = "7ABA7C67-FF06-4655-BBED-A0186A93C797"
 TEST_GRANT_REF = "BBS/E/C/00005040"
@@ -42,6 +43,8 @@ def test_projects_ids_from_funder():
     assert gtr_id_regex.search(test_id)
 
 def test_scraper_funder():
+    raise SkipTest()
+
     gtr = Scraper.create_instance('gtr', defaults)
     gtr.update_settings(
             {
@@ -57,6 +60,8 @@ def test_scraper_funder():
         assert isinstance(article.date_published, date)
 
 def test_scraper_org():
+    raise SkipTest()
+
     gtr = Scraper.create_instance('gtr', defaults)
     gtr.update_settings(
             {

@@ -4,7 +4,7 @@ from oacensus.scraper import Scraper
 import oacensus.load_plugins
 
 def test_crossref_titles_scraper():
-    crossref = Scraper.create_instance("crossreftitles")
+    crossref = Scraper.create_instance("crossrefjournals")
     crossref.update_settings({
         'limit' : 5,
         'add-new-journals' : True
@@ -69,6 +69,7 @@ def test_biomed_scraper():
     biomed.update_settings({ "limit" : 2 })
     biomed_list = biomed.run()
 
+    print "length of biomed_list", len(biomed_list)
     assert len(biomed_list) == 2
 
     for journal in biomed_list:
