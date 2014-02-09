@@ -22,7 +22,7 @@ class NCBI(ArticleScraper):
             "ret-max" : ("Maximum number of entries to return in any single query.", 10000),
             "delay" : ("Time in seconds to delay between API requests.", 1),
             "initial-ret-max" : ("Maximum number of entries to return in the initial query.", 5)
-            }
+        }
 
     def search_url(self):
         """
@@ -122,7 +122,6 @@ class NCBI(ArticleScraper):
         if entry is not None:
             year = entry.findtext("Year")
             month = entry.findtext("Month")
-
             day = entry.findtext("Day")
 
             if day is None:
@@ -160,7 +159,6 @@ class Pubmed(NCBI):
                 for pubmed_article in root:
                     assert pubmed_article.tag == "PubmedArticle"
 
-                    pubmed_data = pubmed_article.find("PubmedData")
                     medline_citation = pubmed_article.find("MedlineCitation")
                     article_entry = medline_citation.find("Article")
                     journal_entry = article_entry.find("Journal")
@@ -173,14 +171,7 @@ class Pubmed(NCBI):
                     if issn_entry is None:
                         issn = journal_iso
                     else:
-                        issn_type = issn_entry.get("IssnType")
-
-                        if issn_type == "Electronic":
-                            issn = issn_entry.text
-                            eissn = issn_entry.text
-                        else:
-                            issn = issn_entry.text
-                            eissn = None
+                        issn = issn_entry.text
 
                     journal = Journal.create_or_update_by_issn({
                         'issn' : issn,

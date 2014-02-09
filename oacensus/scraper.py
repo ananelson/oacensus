@@ -6,6 +6,8 @@ import os
 import shutil
 import chardet
 import codecs
+from dateutil import rrule, relativedelta
+from datetime import datetime
 
 class Scraper(Plugin):
     """
@@ -47,18 +49,17 @@ class Scraper(Plugin):
         """
         return self.setting_values()
 
-    def hashstring(self):
+    def hashstring(self, settings):
         """
         Return hash settings in consistent hashable format.
         """
-        settings = self.hash_settings()
         return ",".join("%s:%s" % (k, settings[k]) for k in sorted(settings))
 
-    def hashcode(self):
+    def hashcode(self, settings):
         """
         Turn hash string into hash code.
         """
-        return hashlib.md5(self.hashstring()).hexdigest()
+        return hashlib.md5(self.hashstring(settings)).hexdigest()
 
     def run(self):
         print self.cache_dir()
@@ -81,13 +82,13 @@ class Scraper(Plugin):
         """
         Location of this object's cache directory.
         """
-        return os.path.join(self._opts['cachedir'], self.hashcode())
+        return os.path.join(self._opts['cachedir'], self.hashcode(self.hash_settings()))
 
     def work_dir(self):
         """
         Location of this object's work directory.
         """
-        return os.path.join(self._opts['workdir'], self.hashcode())
+        return os.path.join(self._opts['workdir'], self.hashcode(self.hash_settings()))
 
     def copy_work_dir_to_cache(self):
         """
@@ -130,7 +131,64 @@ class ArticleScraper(Scraper):
     """
     Scrapers which generate articles.
     """
-    pass
+    aliases = ['articlescraper']
+    _settings = {
+            "start-month" : ("Month in yyyy-mm format.", None),
+            "end-month" : ("Month in yyyy-mm format.", None)
+            }
+
+    def parse_month(self, param_name):
+        datestring = self.setting(param_name)
+        if datestring is None:
+            if "end" in param_name:
+                return None
+            else:
+                raise Exception("%s must be provided in YYYY-MM format" % param_name)
+        return datetime.strptime("%s-01" % datestring, "%Y-%m-%d")
+
+    def period_hash_settings(self, period):
+        settings = self.hash_settings()
+        settings.update({'period' : period.strftime("%Y-%m")})
+        return settings
+
+    def period_hashcode(self, period):
+        return self.hashcode(self.period_hash_settings(period))
+
+    def periods(self):
+        """Iterator for each month between start and end months."""
+        start_month = self.parse_month("start-month")
+        end_month = self.parse_month("end-month")
+
+        a_month_ago = datetime.now() + relativedelta.relativedelta(months = -1)
+        start_of_previous_month = datetime.strptime("%s-01" % a_month_ago.strftime("%Y-%m"), "%Y-%m-%d")
+
+        if end_month is None:
+            end_month = start_of_previous_month
+        elif end_month < start_month:
+            raise Exception("Start month %s must be before end month %s" % (start_month, end_month))
+        elif end_month > start_of_previous_month:
+            raise Exception("End month %s must be before the current date." % end_month)
+
+        return rrule.rrule(rrule.MONTHLY, dtstart=start_month, until=end_month)
+
+    def period_cache_dir(self, period):
+        return os.path.join(self._opts['cachedir'], self.period_hashcode(period))
+
+    def is_period_cached(self, period):
+        return os.path.exists(self.period_cache_dir(period))
+
+    def is_period_stored(self, period):
+        return False
+
+    def scrape(self):
+        for period in self.periods():
+            if not self.is_period_cached(period):
+                self.scrape_period(period)
+
+    def process(self):
+        for period in self.periods():
+            if not self.is_period_stored(period):
+                self.process_period(period)
 
 class ArticleInfoScraper(Scraper):
     """

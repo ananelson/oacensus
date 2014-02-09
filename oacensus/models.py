@@ -28,6 +28,12 @@ class Publisher(ModelBase):
 
         return publisher
 
+class Instance(ModelBase):
+    pass
+
+class Repository(ModelBase):
+    pass
+
 class Journal(ModelBase):
     title = CharField(index=True,
         help_text="Name of journal.")
@@ -98,7 +104,11 @@ class Article(ModelBase):
         help_text="Digital object identifier for article.")
     date_published = DateField(null=True,
         help_text="Date on which article was published.")
+
     source = CharField()
+    period = CharField(
+        help_text="Name of date-based period in which this article was scraped.")
+
     journal = ForeignKeyField(Journal, null=True,
         help_text="Journal object for journal in which article was published.")
     url = CharField(null=True,

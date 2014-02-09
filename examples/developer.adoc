@@ -8,4 +8,45 @@
 
 This is developer documentation about the implementation of OACensus.
 
+== Workflow Overview
+
+The workflow needs to accomplish:
+
+- obtaining raw data from remote data sources
+- parsing the raw data into normalized values
+- populating the database
+
+Subsequent runs of the system should be able to add incremental new data or
+selectively replace existing data which needs updating.
+
+Different sources of data are captured using different Scrapers. Each scraper
+has an alias and various parameters which can be set by the users to configure
+and customize the sources of data they wish to use for a given project.
+
+=== Types of Scrapers
+
+Scrapers need to know the types of data they will be processing so they can
+behave in an intuitive way.
+
+==== Article Scrapers
+
+Article scrapers obtain information about individual articles.
+
+In order to be able to cumulatively add new articles to a database, article
+scrapers should populate the database for a time period at a time, and should
+only populate fully complete time periods.
+
+A `start-month` and `end-month` parameter should be specified, and each scraper
+should know how to partition its query up over monthly intervals from the start
+to the end.
+
+Each period should be scraped and cached separately, and in subsequent runs if
+a period is found to be in the database already, it is not re-downloaded.
+
+A cache table in the DB will store metadata about each period, so that even if
+there are 0 records in a period, it will not be re-scraped.
+
+Some article scrapers will also populate information about Repository/Journal
+and will organize their articles into ArticleList instances.
+
 
