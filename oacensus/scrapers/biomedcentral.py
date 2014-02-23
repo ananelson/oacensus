@@ -18,7 +18,6 @@ class BiomedCentralJournals(JournalScraper):
     _settings = {
             "url" : ("url to scrape", "http://www.biomedcentral.com/journals"),
             "data-file" : ("file to save data under", "bmc-journal-list.html"),
-            "update-journal-fields" : ["open_access", "open_access_source", "license"],
             "license" : ("Open access license for BioMedCentral journals.", "http://creativecommons.org/licenses/by/2.0/")
             }
 

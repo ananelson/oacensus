@@ -18,6 +18,7 @@ class NCBI(ArticleScraper):
             "base-url" : ("Base url of API.", "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/"),
             "ncbi-db" : ("Name of NCBI database to query.", None),
             "search" : ("Search query to include.", None),
+            "datetype" : ("Type of date for period filtering", "pdat"),
             "filepattern" : ("Names of files which hold data in cache.", "data_%04d.xml"),
             "ret-max" : ("Maximum number of entries to return in any single query.", 10000),
             "delay" : ("Time in seconds to delay between API requests.", 1),
@@ -26,26 +27,27 @@ class NCBI(ArticleScraper):
 
     def search_url(self):
         """
-        Search API returns UIDs of articles matching the search query.
+        URL for the Search API, which returns UIDs of articles matching the
+        search query.
         """
         return "%s/esearch.fcgi" % self.setting('base-url')
 
     def fetch_url(self):
         """
-        Fetch API returns full records of articles.
+        URL for the Fetch API, which returns full records of articles.
         """
         return "%s/efetch.fcgi" % self.setting('base-url')
 
-    def search_params(self, extra_params=None):
-        params = {
+    def search_params(self, override_params=None):
+        universal_default_params = {
                 'db' : self.setting('ncbi-db'),
                 'retMax' : self.setting('ret-max'),
                 }
 
-        params.update(extra_params)
-        return params
+        universal_default_params.update(override_params)
+        return universal_default_params
 
-    def initial_search(self):
+    def initial_search_with_period(self, start_date, end_date):
         """
         Method which implements the initial search.
 
@@ -55,6 +57,9 @@ class NCBI(ArticleScraper):
         params = {
                 'term' : self.setting('search'),
                 'usehistory' : 'y',
+                'datetype' : self.setting('datetype'),
+                'mindate' : start_date.strftime("%Y/%m/%d"),
+                'maxdate' : end_date.strftime("%Y/%m/%d"), # TODO is this right?
                 'retMax' : self.setting('initial-ret-max')
                 }
 
@@ -73,14 +78,15 @@ class NCBI(ArticleScraper):
         web_env = root.find("WebEnv").text
         query_key = root.find("QueryKey").text
 
-        print "  there are %s total articles matching the search" % count
+        args = (count, start_date, end_date)
+        self.print_progress("  there are %s total articles matching the search between %s and %s" % args)
 
         return (count, web_env, query_key)
 
-    def data_filepath(self, i):
-        return os.path.join(self.work_dir(), self.setting('filepattern') % i)
+    def data_filepath(self, i, start_date):
+        return os.path.join(self.period_work_dir(start_date), self.setting('filepattern') % i)
 
-    def fetch_batch(self, i, retstart, retmax, web_env, query_key):
+    def fetch_batch(self, i, retstart, retmax, web_env, query_key, start_date):
         self.print_progress("waiting requested delay time...")
         time.sleep(self.setting('delay'))
         msg = "fetching values %s through %s..." % (retstart, retstart+retmax-1)
@@ -100,21 +106,23 @@ class NCBI(ArticleScraper):
                 stream=True
                 )
 
-        with open(self.data_filepath(i), "wb") as f:
+        work_file = self.data_filepath(i, start_date)
+        self.print_progress("saving data to %s" % work_file)
+        with open(work_file, "wb") as f:
             for block in result.iter_content(1024):
                 if not block:
                     break
                 f.write(block)
 
-    def scrape(self):
-        count, web_env, query_key = self.initial_search()
+    def scrape_period(self, start_date, end_date):
+        count, web_env, query_key = self.initial_search_with_period(start_date, end_date)
 
         i = 0
         retstart = 0
         retmax = self.setting('ret-max')
 
         while retstart < count:
-            self.fetch_batch(i, retstart, retmax, web_env, query_key)
+            self.fetch_batch(i, retstart, retmax, web_env, query_key, start_date)
             retstart += retmax
             i += 1
 
@@ -144,14 +152,28 @@ class Pubmed(NCBI):
             "ncbi-db" : "pubmed"
             }
 
-    def process(self):
+    def purge_period(self, start_date):
+        ArticleList.delete().where(ArticleList.name == self.article_list_name(start_date)).execute()
+        Article.delete().where(Article.period == start_date.strftime("%Y-%m")).execute()
 
+    def article_list_name(self, start_date):
+        list_args = (self.setting('search'), start_date.strftime("%Y-%m"))
+        return "pubmed search: %s %s" % list_args
+
+    def is_period_stored(self, start_date):
+        try:
+            ArticleList.get(ArticleList.name == self.article_list_name(start_date))
+            return True
+        except ArticleList.DoesNotExist:
+            return False
+
+    def process_period(self, start_date, end_date):
         article_list = ArticleList.create(
-                name = "pubmed search: %s" % self.setting('search')
-                )
+            name=self.article_list_name(start_date))
 
-        for filename in os.listdir(self.cache_dir()):
-            filepath = os.path.join(self.cache_dir(), filename)
+        cache_dir = self.period_cache_dir(start_date)
+        for filename in os.listdir(cache_dir):
+            filepath = os.path.join(cache_dir, filename)
             with open(filepath, 'rb') as f:
                 tree = ET.parse(f)
                 root = tree.getroot()
@@ -220,6 +242,7 @@ class Pubmed(NCBI):
                             source = self.alias,
                             doi = doi,
                             journal = journal,
+                            period = start_date.strftime("%Y-%m"),
                             date_published = date_published,
                             pubmed_id = pubmed_id,
                             nihm_id = nihm_id,
@@ -228,5 +251,5 @@ class Pubmed(NCBI):
 
                     article_list.add_article(article)
 
-        print "  ", article_list
+        self.print_progress("  %s" % article_list)
         return article_list

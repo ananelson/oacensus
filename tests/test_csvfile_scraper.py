@@ -1,17 +1,13 @@
-from oacensus.commands import defaults
 from oacensus.scraper import Scraper
 import datetime
 
-import oacensus.load_plugins
+from tests.utils import setup_db
 
-from oacensus.models import create_db_tables
-from oacensus.db import db
-db.init(":memory:")
-create_db_tables()
+setup_db()
 
 def test_scrape():
     list_name = "Test List"
-    csv = Scraper.create_instance('csvfile', defaults)
+    csv = Scraper.create_instance('csvfile')
     csv.update_settings({
         'csv-file' : 'tests/test.csv',
         'list-name' : list_name,

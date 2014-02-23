@@ -1,13 +1,16 @@
 from cashew import Plugin, PluginMeta
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from dateutil.rrule import rrule, MONTHLY
 from oacensus.models import Journal
 from oacensus.utils import defaults
-import hashlib
-import os
-import shutil
+from oacensus.utils import relativedelta_units
 import chardet
 import codecs
-from dateutil import rrule, relativedelta
-from datetime import datetime
+import hashlib
+import os
+import os.path
+import shutil
 
 class Scraper(Plugin):
     """
@@ -17,7 +20,10 @@ class Scraper(Plugin):
 
     _settings = {
             'cache': ("Location to copy cache files from.", None),
-            'encoding' : ("Which encoding to use. Can be 'chardet'.", None)
+            'cache-expires' : ("Number of units after which to expire cache files.", None),
+            'cache-expires-units' : ("Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds", "days"),
+            'encoding' : ("Which encoding to use. Can be 'chardet'.", None),
+            'no-hash-settings' : ("Settings to exclude from hash calculations.", [])
             }
 
     def __init__(self, opts=None):
@@ -47,7 +53,7 @@ class Scraper(Plugin):
         """
         Dictionary of settings which should be used to construct hash.
         """
-        return self.setting_values()
+        return dict((k, v) for k, v in self.setting_values().iteritems() if not k in self.setting('no-hash-settings'))
 
     def hashstring(self, settings):
         """
@@ -55,40 +61,38 @@ class Scraper(Plugin):
         """
         return ",".join("%s:%s" % (k, settings[k]) for k in sorted(settings))
 
-    def hashcode(self, settings):
+    def hashcode(self, settings = None):
         """
         Turn hash string into hash code.
         """
+        if settings is None:
+            settings = self.hash_settings()
         return hashlib.md5(self.hashstring(settings)).hexdigest()
 
     def run(self):
-        print self.cache_dir()
+        self.print_progress(self.cache_dir())
         if self.is_scraped_content_cached():
-            print "  scraped data is already cached"
+            self.print_progress("  scraped data is already cached")
         else:
             self.reset_work_dir()
             if self.setting('cache') is not None:
-                print "  using cache location %s..." % self.setting('cache')
+                self.print_progress("  using cache location %s..." % self.setting('cache'))
                 shutil.copytree(self.setting('cache'), self.cache_dir())
             else:
-                print "  calling scrape method..."
+                self.print_progress("  calling scrape method...")
                 self.scrape()
                 self.copy_work_dir_to_cache()
 
-        print "  calling process method..."
+        self.print_progress("  calling process method...")
         return self.process()
 
+    # Cache and Work Dirs
+
     def cache_dir(self):
-        """
-        Location of this object's cache directory.
-        """
-        return os.path.join(self._opts['cachedir'], self.hashcode(self.hash_settings()))
+        return os.path.join(self._opts['cachedir'], self.hashcode())
 
     def work_dir(self):
-        """
-        Location of this object's work directory.
-        """
-        return os.path.join(self._opts['workdir'], self.hashcode(self.hash_settings()))
+        return os.path.join(self._opts['workdir'], self.hashcode())
 
     def copy_work_dir_to_cache(self):
         """
@@ -96,6 +100,9 @@ class Scraper(Plugin):
         """
         shutil.move(self.work_dir(), self.cache_dir())
         assert self.is_scraped_content_cached()
+
+    def create_work_dir(self):
+        os.makedirs(self.work_dir())
 
     def create_cache_dir(self):
         os.makedirs(self.cache_dir())
@@ -105,7 +112,25 @@ class Scraper(Plugin):
         shutil.rmtree(self.cache_dir(), ignore_errors=True)
 
     def is_scraped_content_cached(self):
-        return os.path.exists(self.cache_dir())
+        try:
+            mtime = os.path.getmtime(self.cache_dir())
+            cache_expires = self.setting('cache-expires')
+            if cache_expires is None:
+                return True
+            else:
+                cache_last_modified = datetime.fromtimestamp(mtime)
+                if cache_last_modified < datetime.now() - relativedelta_units(cache_expires, self.setting('cache-expires-units')):
+                    print "clearing cache since content has expired"
+                    shutil.rmtree(self.cache_dir(), ignore_errors=True)
+                    self.purge()
+                    return False
+                else:
+                    return True
+        except OSError as e:
+            if "No such file or directory" in e:
+                return False
+            else:
+                raise
 
     def reset_work_dir(self):
         """
@@ -127,17 +152,23 @@ class Scraper(Plugin):
         """
         raise NotImplementedError()
 
+    def purge(self):
+        "Purge database records."
+        pass
+
 class ArticleScraper(Scraper):
     """
     Scrapers which generate articles.
     """
     aliases = ['articlescraper']
     _settings = {
-            "start-month" : ("Month in yyyy-mm format.", None),
-            "end-month" : ("Month in yyyy-mm format.", None)
+            "start-period" : ("Period (month) in yyyy-mm format.", None),
+            "end-period" : ("Period (month) in yyyy-mm format.", None),
+            'no-hash-settings' : ["start-period", "end-period"]
             }
 
     def parse_month(self, param_name):
+        "Returns a datetime for a yyyy-mm setting."
         datestring = self.setting(param_name)
         if datestring is None:
             if "end" in param_name:
@@ -146,20 +177,20 @@ class ArticleScraper(Scraper):
                 raise Exception("%s must be provided in YYYY-MM format" % param_name)
         return datetime.strptime("%s-01" % datestring, "%Y-%m-%d")
 
-    def period_hash_settings(self, period):
+    def period_hash_settings(self, period_start_date):
         settings = self.hash_settings()
-        settings.update({'period' : period.strftime("%Y-%m")})
+        settings.update({'period' : period_start_date.strftime("%Y-%m")})
         return settings
 
-    def period_hashcode(self, period):
-        return self.hashcode(self.period_hash_settings(period))
+    def period_hashcode(self, start_date):
+        return self.hashcode(self.period_hash_settings(start_date))
 
-    def periods(self):
-        """Iterator for each month between start and end months."""
-        start_month = self.parse_month("start-month")
-        end_month = self.parse_month("end-month")
+    def start_dates(self):
+        "Return an iterator of start dates for monthly periods."
+        start_month = self.parse_month("start-period")
+        end_month = self.parse_month("end-period")
 
-        a_month_ago = datetime.now() + relativedelta.relativedelta(months = -1)
+        a_month_ago = datetime.now() + relativedelta(months = -1)
         start_of_previous_month = datetime.strptime("%s-01" % a_month_ago.strftime("%Y-%m"), "%Y-%m-%d")
 
         if end_month is None:
@@ -169,26 +200,83 @@ class ArticleScraper(Scraper):
         elif end_month > start_of_previous_month:
             raise Exception("End month %s must be before the current date." % end_month)
 
-        return rrule.rrule(rrule.MONTHLY, dtstart=start_month, until=end_month)
+        return rrule(MONTHLY, dtstart=start_month, until=end_month)
 
-    def period_cache_dir(self, period):
-        return os.path.join(self._opts['cachedir'], self.period_hashcode(period))
+    def periods(self):
+        "Return an iterator of period start and end dates."
+        for i, start_date in enumerate(self.start_dates()):
+            yield (start_date, start_date + relativedelta(months = 1))
 
-    def is_period_cached(self, period):
-        return os.path.exists(self.period_cache_dir(period))
+    def period_cache_dir(self, start_date):
+        return os.path.join(self._opts['cachedir'], self.period_hashcode(start_date))
 
-    def is_period_stored(self, period):
-        return False
+    def period_work_dir(self, start_date):
+        return os.path.join(self._opts['workdir'], self.period_hashcode(start_date))
+
+    def copy_period_work_dir_to_cache(self, start_date):
+        shutil.move(self.period_work_dir(start_date), self.period_cache_dir(start_date))
+        assert self.is_period_cached(start_date)
+
+    def create_period_work_dir(self, start_date):
+        os.makedirs(self.period_work_dir(start_date))
+
+    def create_period_cache_dir(self, start_date):
+        os.makedirs(self.period_cache_dir(start_date))
+
+    def reset_period_work_dir(self, start_date):
+        """
+        Remove any old working content and ensure an empty work dir exists.
+        """
+        work_dir = self.period_work_dir(start_date)
+        assert os.path.abspath(".") in os.path.abspath(work_dir)
+        shutil.rmtree(work_dir, ignore_errors=True)
+        os.makedirs(work_dir)
+
+    def remove_period_cache_dir(self, start_date):
+        period_cache_dir = self.period_cache_dir(start_date)
+        assert os.path.abspath(".") in os.path.abspath(period_cache_dir)
+        shutil.rmtree(period_cache_dir, ignore_errors=True)
+
+    def is_period_cached(self, start_date):
+        "Is the period's scraped raw data available on the local file system?"
+        return os.path.exists(self.period_cache_dir(start_date))
+
+    def is_period_stored(self, start_date):
+        "Is the period's data available in the local database?"
+        raise NotImplementedError()
+
+    def purge_period(self, start_date):
+        "Purge the database records for the period."
+        raise NotImplementedError()
 
     def scrape(self):
-        for period in self.periods():
-            if not self.is_period_cached(period):
-                self.scrape_period(period)
+        if self.setting('cache-expires') is not None:
+            raise Exception("Can't use cache-expires for periodic scrapers.")
+
+        for start_date, end_date in self.periods():
+            if not self.is_period_cached(start_date):
+                self.reset_period_work_dir(start_date)
+                self.scrape_period(start_date, end_date)
+                self.copy_period_work_dir_to_cache(start_date)
+            assert self.is_period_cached(start_date)
 
     def process(self):
-        for period in self.periods():
-            if not self.is_period_stored(period):
-                self.process_period(period)
+        lists = []
+        for start_date, end_date in self.periods():
+            if not self.is_period_stored(start_date):
+                assert self.is_period_cached(start_date)
+                assert not self.is_period_stored(start_date)
+                try:
+                    article_list = self.process_period(start_date, end_date)
+                    lists.append(article_list)
+                except Exception:
+                    print "An error has occurred while processing period %s, cleaning up DB so you can try again later" % start_date
+                    self.purge_period(start_date)
+                    assert not self.is_period_stored(start_date)
+                    raise
+            assert self.is_period_stored(start_date)
+
+        return lists
 
 class ArticleInfoScraper(Scraper):
     """
@@ -240,3 +328,9 @@ class JournalScraper(Scraper):
                 setattr(journal, k, v)
         journal.save()
         return journal
+
+class RatingScraper(JournalScraper):
+    """
+    Scraper for ratings (journal metadata).
+    """
+    pass

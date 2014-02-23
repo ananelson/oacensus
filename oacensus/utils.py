@@ -1,5 +1,6 @@
-import urlparse
+from dateutil.relativedelta import relativedelta
 import requests
+import urlparse
 
 defaults = {
     'cachedir' : '.oacensus/cache/',
@@ -36,3 +37,23 @@ def parse_coins(raw_coins):
 
 def parse_crossref_coins(crossref_info):
     return parse_coins(crossref_coins(crossref_info))
+
+def relativedelta_units(interval, units):
+    if units == 'days':
+        return relativedelta(days = interval)
+    elif units == 'years':
+        return relativedelta(years = interval)
+    elif units == 'months':
+        return relativedelta(months = interval)
+    elif units =='weeks':
+        return relativedelta(weeks = interval)
+    elif units == 'hours':
+        return relativedelta(hours = interval)
+    elif units == 'minutes':
+        return relativedelta(minutes = interval)
+    elif units == 'seconds':
+        return relativedelta(seconds = interval)
+    elif units == 'microseconds':
+        return relativedelta(microseconds = interval)
+    else:
+        raise Exception("Invalid time unit %s" % units)

@@ -11,6 +11,7 @@ import oacensus.scrapers.scimago
 import oacensus.scrapers.wiley
 import oacensus.scrapers.rcukgtr
 import oacensus.scrapers.csvfile
+import oacensus.scrapers.licenses
 
 import oacensus.reports.excel_dump
 import oacensus.reports.personal_openness
