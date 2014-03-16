@@ -1,10 +1,10 @@
 from oacensus.models import Article
-from oacensus.scraper import ArticleInfoScraper
+from oacensus.scraper import Scraper
 import json
 import requests
 
 
-class OAG(ArticleInfoScraper):
+class OAG(Scraper):
     """
     Adds information from Open Article Gauge (OAG) to articles.
 

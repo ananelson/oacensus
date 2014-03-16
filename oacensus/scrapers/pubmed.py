@@ -1,6 +1,8 @@
 from oacensus.exceptions import APIError
 from oacensus.models import Article
 from oacensus.models import ArticleList
+from oacensus.models import Repository
+from oacensus.models import Instance
 from oacensus.models import Journal
 from oacensus.scraper import ArticleScraper
 import dateutil.parser
@@ -8,10 +10,14 @@ import os
 import requests
 import time
 import xml.etree.ElementTree as ET
+from oacensus.utils import nihm_name, pmc_name, pubmed_name
 
 class NCBI(ArticleScraper):
     """
     Base class for scrapers querying NCBI databases (including pubmed).
+
+    Since this has just been tested on pubmed, there may be pubmed-specific
+    stuff in here.
     """
     aliases = []
     _settings = {
@@ -168,7 +174,12 @@ class Pubmed(NCBI):
             return False
 
     def process_period(self, start_date, end_date):
+        nihm_repository = Repository.find_or_create_by_name(nihm_name, self.alias)
+        pmc_repository = Repository.find_or_create_by_name(pmc_name, self.alias)
+        pubmed_repository = Repository.find_or_create_by_name(pubmed_name, self.alias)
+
         article_list = ArticleList.create(
+            source=self.alias,
             name=self.article_list_name(start_date))
 
         cache_dir = self.period_cache_dir(start_date)
@@ -225,13 +236,13 @@ class Pubmed(NCBI):
                     pubmed_id = medline_citation.findtext("PMID")
 
                     nihm_id = None
-                    pcm_id = None
+                    pmc_id = None
                     for other_id in medline_citation.findall("OtherID"):
                         other_id_text = other_id.text
                         if other_id_text.startswith("NIHM"):
                             nihm_id = other_id_text
                         elif other_id_text.startswith("PMC"):
-                            pcm_id = other_id_text
+                            pmc_id = other_id_text
                         else:
                             pass
 
@@ -244,10 +255,28 @@ class Pubmed(NCBI):
                             journal = journal,
                             period = start_date.strftime("%Y-%m"),
                             date_published = date_published,
-                            pubmed_id = pubmed_id,
-                            nihm_id = nihm_id,
-                            pcm_id = pcm_id
                             )
+
+                    if nihm_id is not None:
+                        Instance.create(
+                                article=article,
+                                repository=nihm_repository,
+                                identifier=nihm_id,
+                                source=self.alias)
+
+                    if pmc_id is not None:
+                        Instance.create(
+                                article=article,
+                                repository=pmc_repository,
+                                identifier=pmc_id,
+                                source=self.alias)
+
+                    if pubmed_id is not None:
+                        Instance.create(
+                                article=article,
+                                repository=pubmed_repository,
+                                identifier=pubmed_id,
+                                source=self.alias)
 
                     article_list.add_article(article)
 

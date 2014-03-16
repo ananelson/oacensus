@@ -1,4 +1,3 @@
-from datetime import date
 from oacensus.models import Journal
 from oacensus.scraper import Scraper
 from tests.utils import setup_db
@@ -30,24 +29,9 @@ def test_doilist_scraper():
     assert article_list.name == "My Custom List"
     assert article.source == 'doilist'
 
-# Article Info scrapers
 def test_crossref_scraper():
     crossref = Scraper.create_instance("crossref")
     crossref.run()
-
-# Journal scrapers
-def test_biomed_scraper():
-    biomed = Scraper.create_instance('biomed')
-    biomed.update_settings({ "limit" : 2 })
-    biomed_list = biomed.run()
-
-    print "length of biomed_list", len(biomed_list)
-    assert len(biomed_list) == 2
-
-    for journal in biomed_list:
-        assert journal.source == "biomed"
-        assert journal.open_access
-        assert "creativecommons.org" in journal.license 
 
 def test_doaj_scraper():
     limit = 5

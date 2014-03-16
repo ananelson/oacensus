@@ -1,8 +1,8 @@
 from oacensus.models import Article
 from oacensus.models import JournalList
 from oacensus.models import Publisher
-from oacensus.scraper import ArticleInfoScraper
 from oacensus.scraper import JournalScraper
+from oacensus.scraper import Scraper
 from oacensus.utils import parse_crossref_coins
 import csv
 import json
@@ -63,7 +63,7 @@ class CrossrefJournals(JournalScraper):
 
         return crossref_list
 
-class Crossref(ArticleInfoScraper):
+class Crossref(Scraper):
     """
     Gets crossref information for all articles with DOIs in the database.
 

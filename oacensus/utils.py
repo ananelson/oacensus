@@ -2,6 +2,10 @@ from dateutil.relativedelta import relativedelta
 import requests
 import urlparse
 
+nihm_name = "National Institutes of Health and Medicine"
+pmc_name = "PubMed Central"
+pubmed_name = "PubMed"
+
 defaults = {
     'cachedir' : '.oacensus/cache/',
     'config' : 'oacensus.yaml',
@@ -57,3 +61,18 @@ def relativedelta_units(interval, units):
         return relativedelta(microseconds = interval)
     else:
         raise Exception("Invalid time unit %s" % units)
+
+# http://docs.python.org/2/library/csv#csv-examples
+import csv
+
+def utf_8_encoder(unicode_csv_data):
+    for line in unicode_csv_data:
+        yield line.encode('utf-8')
+
+def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
+    # csv.py doesn't do Unicode; encode temporarily as UTF-8:
+    csv_reader = csv.DictReader(utf_8_encoder(unicode_csv_data),
+                            dialect=dialect, **kwargs)
+    for row in csv_reader:
+        # decode UTF-8 back to Unicode, cell by cell:
+        yield dict( (name, unicode(cell, 'utf-8')) for name, cell in row.iteritems() )

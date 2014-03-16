@@ -1,7 +1,10 @@
-from oacensus.scraper import Scraper
-from oacensus.commands import defaults
 from datetime import datetime
 from dateutil import relativedelta
+from oacensus.commands import defaults
+from oacensus.scraper import Scraper
+from tests.utils import setup_db
+
+setup_db()
 
 class TestScraper(Scraper):
     """

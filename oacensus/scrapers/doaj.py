@@ -2,18 +2,19 @@ from oacensus.models import Journal
 from oacensus.models import JournalList
 from oacensus.models import Publisher
 from oacensus.models import License
-from oacensus.scraper import RatingScraper
-import csv
+from oacensus.scraper import Scraper
 import os
 import urllib
+from oacensus.utils import unicode_csv_reader
 
-class DoajJournals(RatingScraper):
+class DoajJournals(Scraper):
     """
     Generates ratings for journals with openness information from DOAJ.
     """
     aliases = ['doaj']
 
     _settings = {
+            "add-new-journals" : True,
             "cache-expires" : 90,
             "cache-expires-units" : "days",
             "csv-url" : ("Base url for accessing DOAJ.", "http://www.doaj.org/csv"),
@@ -37,8 +38,9 @@ class DoajJournals(RatingScraper):
         
         doaj_list = JournalList.create(name = self.setting('list-name'), source=self.alias)
 
-        with open(doaj_data, 'rb') as f:
-            doaj_reader = csv.DictReader(f)
+        import codecs
+        with codecs.open(doaj_data, 'r', encoding="utf-8") as f:
+            doaj_reader = unicode_csv_reader(f)
 
             for i, row in enumerate(doaj_reader):
                 # Allow limiting to a small number for testing and development.
@@ -49,7 +51,7 @@ class DoajJournals(RatingScraper):
 
                 raw_license = row['CC License']
                 if raw_license:
-                    license = License.find_license_by_alias("cc-%s" % raw_license)
+                    license = License.find_license("cc-%s" % raw_license)
 
                 publisher = Publisher.create_or_update_by_name(row['Publisher'], self.alias)
 

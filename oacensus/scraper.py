@@ -3,6 +3,12 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY
 from oacensus.models import Journal
+from oacensus.models import JournalList
+from oacensus.models import Article
+from oacensus.models import ArticleList
+from oacensus.models import Publisher
+from oacensus.models import Rating
+from oacensus.models import Instance
 from oacensus.utils import defaults
 from oacensus.utils import relativedelta_units
 import chardet
@@ -19,7 +25,6 @@ class Scraper(Plugin):
     __metaclass__ = PluginMeta
 
     _settings = {
-            'cache': ("Location to copy cache files from.", None),
             'cache-expires' : ("Number of units after which to expire cache files.", None),
             'cache-expires-units' : ("Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds", "days"),
             'encoding' : ("Which encoding to use. Can be 'chardet'.", None),
@@ -71,20 +76,23 @@ class Scraper(Plugin):
 
     def run(self):
         self.print_progress(self.cache_dir())
-        if self.is_scraped_content_cached():
+        if self.is_data_cached():
             self.print_progress("  scraped data is already cached")
         else:
-            self.reset_work_dir()
-            if self.setting('cache') is not None:
-                self.print_progress("  using cache location %s..." % self.setting('cache'))
-                shutil.copytree(self.setting('cache'), self.cache_dir())
-            else:
-                self.print_progress("  calling scrape method...")
-                self.scrape()
-                self.copy_work_dir_to_cache()
+            # Make sure databsae is clear of old data.
+            self.remove_stored_data()
+            assert not self.is_data_stored()
 
-        self.print_progress("  calling process method...")
-        return self.process()
+            self.reset_work_dir()
+            self.print_progress("  calling scrape method...")
+            self.scrape()
+            self.copy_work_dir_to_cache()
+
+        if self.is_data_stored():
+            self.print_progress("  data is already stored")
+        else:
+            self.print_progress("  calling process method...")
+            return self.process()
 
     # Cache and Work Dirs
 
@@ -99,7 +107,7 @@ class Scraper(Plugin):
         When work is completed, populated working directory is moved to cache.
         """
         shutil.move(self.work_dir(), self.cache_dir())
-        assert self.is_scraped_content_cached()
+        assert self.is_data_cached()
 
     def create_work_dir(self):
         os.makedirs(self.work_dir())
@@ -111,7 +119,16 @@ class Scraper(Plugin):
         assert os.path.abspath(".") in os.path.abspath(self.cache_dir())
         shutil.rmtree(self.cache_dir(), ignore_errors=True)
 
-    def is_scraped_content_cached(self):
+    def remove_stored_data(self):
+        Article.delete_all_from_source(self.alias)
+        ArticleList.delete_all_from_source(self.alias)
+        Instance.delete_all_from_source(self.alias)
+        Journal.delete_all_from_source(self.alias)
+        JournalList.delete_all_from_source(self.alias)
+        Publisher.delete_all_from_source(self.alias)
+        Rating.delete_all_from_source(self.alias)
+
+    def is_data_cached(self):
         try:
             mtime = os.path.getmtime(self.cache_dir())
             cache_expires = self.setting('cache-expires')
@@ -131,6 +148,9 @@ class Scraper(Plugin):
                 return False
             else:
                 raise
+
+    def is_data_stored(self):
+        return False
 
     def reset_work_dir(self):
         """
@@ -278,19 +298,12 @@ class ArticleScraper(Scraper):
 
         return lists
 
-class ArticleInfoScraper(Scraper):
-    """
-    Scrapers which add metadata to existing articles.
-    """
-    def scrape(self):
-        pass
-
 class JournalScraper(Scraper):
     """
     Scrapers which generate or add metadata to journals.
     """
     _settings = {
-            "add-new-journals" : ("Whether to create new Journal instances if one doesn't already exist.", False),
+            "add-new-journals" : ("Whether to create new Journal instances if one doesn't already exist.", True),
             "update-journal-fields" : ("Whitelist of fields which should be applied when updating an existing journal.", []),
             "limit" : ("Limit of journals to process (for testing/dev)", None)
             }
@@ -328,9 +341,3 @@ class JournalScraper(Scraper):
                 setattr(journal, k, v)
         journal.save()
         return journal
-
-class RatingScraper(JournalScraper):
-    """
-    Scraper for ratings (journal metadata).
-    """
-    pass

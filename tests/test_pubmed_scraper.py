@@ -3,6 +3,7 @@ from datetime import datetime
 from oacensus.models import Article
 from oacensus.models import ArticleList
 from oacensus.scraper import Scraper
+from oacensus.utils import pubmed_name
 from tests.utils import setup_db
 
 setup_db()
@@ -119,5 +120,9 @@ def test_pubmed_single_article():
     assert article.date_published == date(2008, 12, 12)
     assert article.source == 'pubmed'
     assert article.period == '2008-12'
-    assert article.pubmed_id == "19008416"
     assert article.journal.title == "Science (New York, N.Y.)"
+
+    pubmed_instance = article.instance_for(pubmed_name)
+    assert pubmed_instance.identifier == "19008416"
+
+    pubmed.remove_stored_data()

@@ -1,5 +1,8 @@
 from bs4 import BeautifulSoup
+from oacensus.models import Journal
+from oacensus.models import Rating
 from oacensus.models import JournalList
+from oacensus.models import License
 from oacensus.models import Publisher
 from oacensus.scraper import JournalScraper
 import hashlib
@@ -18,8 +21,14 @@ class BiomedCentralJournals(JournalScraper):
     _settings = {
             "url" : ("url to scrape", "http://www.biomedcentral.com/journals"),
             "data-file" : ("file to save data under", "bmc-journal-list.html"),
-            "license" : ("Open access license for BioMedCentral journals.", "http://creativecommons.org/licenses/by/2.0/")
+            "license" : ("Open access license for BioMedCentral journals.", "cc-by"),
+            "issns" : ("Dict of supplemental ISSNs if pages prove difficult to parse.", {
+                "http://www.almob.org" : "1748-7188"
+                })
             }
+
+    def is_data_stored(self):
+        return Journal.count_from_source(self.alias) > 0
 
     def scrape(self):
         limit = self.setting('limit')
@@ -40,7 +49,7 @@ class BiomedCentralJournals(JournalScraper):
             issn_found = False
             n_attempts = 5
             for i in range(1, n_attempts):
-                print "  fetching", journal_url, "attempt", i
+                self.print_progress("  fetching %s attempt %s" % (journal_url, i))
                 urllib.urlretrieve(journal_url, journal_filepath)
 
                 with open(journal_filepath, 'rb') as f:
@@ -50,7 +59,7 @@ class BiomedCentralJournals(JournalScraper):
                         issn_found = True
                         break
 
-            if not issn_found:
+            if not issn_found and not self.setting('issns').has_key(journal_url):
                 raise Exception("Issn not found in %s after %s tries." % (journal_url, n_attempts))
 
     def journal_list_iter(self, soup):
@@ -72,12 +81,13 @@ class BiomedCentralJournals(JournalScraper):
             yield anchor
 
     def process(self):
+        license = License.find_license(self.setting('license'))
         filepath = os.path.join(self.cache_dir(), self.setting('data-file'))
         with open(filepath, 'rb') as f:
             soup = BeautifulSoup(f)
 
-        biomed_list = JournalList.create(name = "BioMedCentral Journals")
-        publisher = Publisher.create(name = "BioMedCentral")
+        biomed_list = JournalList.create(name = "BioMedCentral Journals", source=self.alias)
+        publisher = Publisher.create(name = "BioMedCentral", source=self.alias)
 
         for anchor in self.journal_list_iter(soup):
             journal_url = anchor.get('href')
@@ -99,17 +109,21 @@ class BiomedCentralJournals(JournalScraper):
                 issn_span = journal_soup.select("#issn")[0]
                 issn = issn_span.text
             else:
-                raise Exception("no issn found for %s" % anchor.text.strip())
+                issn = self.setting('issns')[journal_url]
 
             args = {
                     'title' : anchor.text.strip(),
                     'url' : anchor.get('href'),
-                    'open_access' : True,
-                    'open_access_source' : self.alias,
-                    'license' : self.setting('license'),
                     'publisher' : publisher
                     }
 
-            self.create_or_modify_journal(issn, args, biomed_list)
+            journal = self.create_or_modify_journal(issn, args, biomed_list)
+
+            Rating.create(
+                    journal = journal,
+                    free_to_read = True,
+                    license = license,
+                    source = self.alias
+                    )
 
         return biomed_list

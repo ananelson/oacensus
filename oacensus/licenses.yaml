@@ -1,0 +1,29 @@
+cc-by:
+    title: Creative Commons Attribution
+    url: https://creativecommons.org/licenses/by/4.0
+    aliases: []
+
+cc-by-sa:
+    title: Creative Commons Attribution ShareAlike
+    url: https://creativecommons.org/licenses/by-sa/4.0
+    aliases: []
+
+cc-by-nc-nd:
+    title: Creative Commons Attribution NonCommercial NoDerivatives
+    url: https://creativecommons.org/licenses/by-nc-nd/4.0
+    aliases: []
+
+cc-by-nc:
+    title: Creative Commons Attribution NonCommercial
+    url: https://creativecommons.org/licenses/by-nc/4.0
+    aliases: []
+
+cc-by-nd:
+    title: Creative Commons Attribution NoDerivatives
+    url: https://creativecommons.org/licenses/by-nd/4.0
+    aliases: []
+
+cc-by-nc-sa:
+    title: Creative Commons Attribution NonCommercial ShareAlike
+    url: https://creativecommons.org/licenses/by-nc-nd-sa/4.0
+    aliases: []
