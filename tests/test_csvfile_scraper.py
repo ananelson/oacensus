@@ -7,10 +7,12 @@ setup_db()
 
 def test_scrape():
     list_name = "Test List"
+    source = "custom-source"
     csv = Scraper.create_instance('csvfile')
     csv.update_settings({
         'csv-file' : 'tests/test.csv',
-        'list-name' : list_name,
+        "list-name" : list_name,
+        'source' : source,
         'column-mapping' : {
             "DOI" : 'doi',
             "ISSN" : 'journal.issn',
@@ -22,11 +24,14 @@ def test_scrape():
     article_list = csv.run()
     assert len(article_list) == 100
     assert article_list.name == list_name
+    assert article_list.source == source
 
     article = article_list.articles()[0]
     assert article.date_published == datetime.date(2008,1,1)
     assert article.journal.title == "Logical Methods in Computer Science"
     assert article.journal.issn == "1860-5974"
+    assert article.source == source
+    assert article.journal.source == source
 
     article = article_list.articles()[1]
     assert article.date_published == datetime.date(2008,3,1)

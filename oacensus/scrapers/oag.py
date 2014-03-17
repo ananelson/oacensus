@@ -1,4 +1,7 @@
 from oacensus.models import Article
+from oacensus.models import Instance
+from oacensus.models import License
+from oacensus.models import Repository
 from oacensus.scraper import Scraper
 import json
 import requests
@@ -16,39 +19,50 @@ class OAG(Scraper):
 
     _settings = {
             'base-url' : ("Base url of OAG API", "http://oag.cottagelabs.com/lookup/"),
-            'max-items' : ("Maximum number of items in a single API request.", 1000)
+            'max-items' : ("Maximum number of items in a single API request.", 1000),
+            'repository-name' : ("Name of OAG repository.", "Open Article Gauge")
             }
 
+    def scrape(self):
+        pass
+
     def process(self):
+        articles_with_dois = Article.select().where(~(Article.doi >> None))
+        repository = Repository.create(name = self.setting('repository-name'), source=self.alias)
+
         api_url = self.setting('base-url')
         max_items = self.setting('max-items')
-        n_articles = Article.select().count()
+        n_articles = articles_with_dois.count()
         n_batches = n_articles/max_items+1
+
+        for article in articles_with_dois:
+            print article
 
         for i in range(n_batches):
             self.print_progress("Processing query number %s of %s" % (i, n_batches))
-            articles = Article.select().where(Article.doi).paginate(i, paginate_by=max_items)
+            articles = articles_with_dois.paginate(i, paginate_by=max_items)
             dois = [article.doi for article in articles]
 
             response = requests.post(api_url, data = json.dumps(dois))
-            oag_response = json.loads(response.text) 
+            oag_response = json.loads(response.text)['results']
 
-            # Make a map using DOIs as keys to easily look up license info later.
-            license_info_by_doi = {}
-            for oag_result in oag_response['results']:
-                license_info_by_doi[oag_result['identifier'][0]['id']] = oag_result['license']
+            for i, article in enumerate(articles):
+                license_info = oag_response[i]
 
-            for article in articles:
-                license = license_info_by_doi.get(article.doi)
-
-                if not license:
+                if not license_info:
                     print "  no license info returned for", article
                     continue
 
-                self.update_article_with_license_info(article, license)
+                if license_info['license'][0]['open_access']:
+                    license_title = license_info['license'][0]['title']
+                    license = License.find_license(license_title)
+                else:
+                    license = None
 
-    def update_article_with_license_info(self, article, license):
-        article.open_access = license[0]['open_access']
-        article.open_access_source = self.alias
-        article.license = license[0]['title'].strip()
-        article.save()
+                # TODO can we say anything about free-to-read?
+
+                Instance.create(
+                        article=article,
+                        repository=repository,
+                        license=license,
+                        source=self.alias)

@@ -19,6 +19,7 @@ class DOIList(ArticleScraper):
             "doi-list" : ("Specify list of DOIs directly instead of via a file.", None),
             "list-name" : ("Custom list name.", "Custom DOI List"),
             "data-file" : ("Name of cache file to store DOIs.", "work.txt"),
+            "period" : ("Custom setting for article 'period'.", "manual"),
             "source" : ("'source' attribute to use for articles.", "doilist")
             }
 
@@ -44,7 +45,7 @@ class DOIList(ArticleScraper):
         with open(data_file, 'rb') as f:
             DOIs = json.load(f)
 
-        article_list = ArticleList.create(name=self.setting('list-name'))
+        article_list = ArticleList.create(name=self.setting('list-name'), source=self.setting('source'))
 
         for doi in DOIs:
             response = requests.get(self.setting('base-url'),
@@ -53,28 +54,28 @@ class DOIList(ArticleScraper):
             response_list = json.loads(response.text)
 
             if len(response_list) == 0:
-                print "No responses matched doi %s, skipping." % doi
+                self.print_progress("No responses matched doi %s, skipping." % doi)
             elif len(response_list) > 1:
-                print "Multiple responses matched doi %s, skipping." % doi
+                self.print_progress("Multiple responses matched doi %s, skipping." % doi)
             else:
                 crossref_info = response_list[0]
-                coins = parse_crossref_coins(crossref_info)
 
-                print coins.keys()
-                print coins
-                print crossref_info.keys()
+#                coins = parse_crossref_coins(crossref_info)
+#                print coins.keys()
+#                print coins
+#                print crossref_info.keys()
+
                 year = crossref_info['year']
                 year = int(year) if year is not None else 1900
 
                 article = Article.create(
                         title = crossref_info['title'],
+                        period = self.setting('period'),
                         doi = doi,
                         date_published = datetime.date(year, 1, 1),
                         source = self.setting('source')
                         )
 
-                #print article
                 article_list.add_article(article)
 
-        print "  ", article_list
         return article_list

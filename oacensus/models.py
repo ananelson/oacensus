@@ -1,6 +1,4 @@
 from peewee import *
-import sqlite3
-import json
 
 from oacensus.db import db
 
@@ -8,10 +6,17 @@ class ModelBase(Model):
     source = CharField(help_text="Which scraper populated this information?")
 
     def truncate_title(self, length=40):
-        if len(self.title) < length:
-            return self.title
+        title = self.title
+        if len(title) < length:
+            if type(title) is str:
+                return title.decode("utf-8", "ignore")
+            else:
+                return title
         else:
-            return u"%s..." % self.title[0:length]
+            truncated = title[0:length]
+            if type(truncated) is str:
+                truncated = truncated.decode("utf-8", "ignore")
+            return u"{0}...".format(truncated)
 
     class Meta:
         database = db
@@ -25,10 +30,10 @@ class ModelBase(Model):
         return klass.select().where(klass.source == source).count()
 
     def __unicode__(self):
-        return "TODO IMPLEMENT UNICODE FOR %s" % self.__class__.__name__
+        return u"TODO IMPLEMENT UNICODE FOR %s" % self.__class__.__name__
 
     def __str__(self):
-        return unicode(self).encode('ascii', 'replace')
+        return unicode(self).encode("ascii", "ignore")
 
 class License(ModelBase):
     alias = CharField()
@@ -41,7 +46,7 @@ class License(ModelBase):
     @classmethod
     def find_license(klass, alias):
         try:
-            return License.get((License.alias == alias) | (License.url == alias))
+            return License.get((License.alias == alias) | (License.url == alias) | (License.title == alias))
         except License.DoesNotExist:
             return LicenseAlias.get(LicenseAlias.alias == alias).license
 
@@ -190,9 +195,12 @@ class OpenMetaCommon(ModelBase):
 class Rating(OpenMetaCommon):
     journal = ForeignKeyField(Journal, related_name="ratings")
 
+    def __unicode__(self):
+        return u"<Rating {1} on {0}>".format(self.journal.title, self.id)
+
 class Instance(OpenMetaCommon):
     article = ForeignKeyField(Article, related_name="instances")
-    repository = ForeignKeyField(Repository, null=True,
+    repository = ForeignKeyField(Repository,
         help_text="Repository in which this instance is deposited or described.")
     identifier = CharField(null=True,
             help_text = "Identifier within the repository.")
@@ -212,8 +220,8 @@ class JournalList(ModelBase):
     name = CharField()
 
     def __unicode__(self):
-        args = (len(self.journals()), self.name)
-        return u"<Journal List {0}: {1}>".format(*args)
+        args = (len(self.journals()), self.name, self.id)
+        return u"<Journal List {2} ({0}): {1}>".format(*args)
 
     def __len__(self):
         return self.memberships.count()
@@ -221,11 +229,12 @@ class JournalList(ModelBase):
     def __getitem__(self, key):
         return self.memberships[key].journal
 
-    def add_journal(self, journal):
+    def add_journal(self, journal, source):
         JournalListMembership(
             journal_list = self,
-            source = 'unknown',
-            journal = journal).save()
+            source = source,
+            journal = journal
+        ).save()
 
     def journals(self):
         return [membership.journal for membership in self.memberships]
@@ -274,3 +283,20 @@ def create_db_tables():
     JournalListMembership.create_table()
     Publisher.create_table()
     Repository.create_table()
+
+def delete_all(delete_licenses = False):
+    Article.delete().execute()
+    ArticleList.delete().execute()
+    ArticleListMembership.delete().execute()
+    Instance.delete().execute()
+    Rating.delete().execute()
+    Journal.delete().execute()
+    JournalList.delete().execute()
+    JournalListMembership.delete().execute()
+    Publisher.delete().execute()
+    Repository.delete().execute()
+
+    if delete_licenses:
+        License.delete().execute()
+        LicenseAlias.delete().execute()
+

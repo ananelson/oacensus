@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
 from oacensus.models import Journal
-from oacensus.models import Rating
 from oacensus.models import JournalList
 from oacensus.models import License
 from oacensus.models import Publisher
+from oacensus.models import Rating
 from oacensus.scraper import JournalScraper
 import hashlib
 import os
@@ -19,6 +19,7 @@ class BiomedCentralJournals(JournalScraper):
     aliases = ['biomed']
 
     _settings = {
+            'add-new-journals' : True,
             "url" : ("url to scrape", "http://www.biomedcentral.com/journals"),
             "data-file" : ("file to save data under", "bmc-journal-list.html"),
             "license" : ("Open access license for BioMedCentral journals.", "cc-by"),

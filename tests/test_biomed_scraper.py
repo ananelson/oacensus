@@ -1,4 +1,3 @@
-from oacensus.models import Journal
 from oacensus.scraper import Scraper
 from tests.utils import setup_db
 import oacensus.load_plugins
@@ -17,3 +16,7 @@ def test_biomed_scraper():
         assert journal.source == "biomed"
         assert journal.is_free_to_read()
         assert journal.ratings[0].license.title == "Creative Commons Attribution"
+
+    assert biomed.is_data_stored()
+    biomed.remove_stored_data()
+    assert not biomed.is_data_stored()

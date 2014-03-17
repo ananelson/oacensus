@@ -32,7 +32,8 @@ class CrossrefJournals(JournalScraper):
         crossref_data = os.path.join(self.cache_dir(), self.setting('data-file'))
         limit = self.setting('limit')
 
-        crossref_list = JournalList.create(name = "Crossref Journals")
+        crossref_list = JournalList.create(name = "Crossref Journals", source = self.alias)
+        print "cross ref list", crossref_list
 
         with open(crossref_data, 'rb') as f:
             crossref_reader = csv.DictReader(f)
@@ -56,14 +57,14 @@ class CrossrefJournals(JournalScraper):
                 args = {
                         'title' : clean_title(row['JournalTitle']),
                         'doi' : row['doi'],
-                        'publisher' : Publisher.create_or_update_by_name(row['Publisher'])
+                        'publisher' : Publisher.find_or_create_by_name(row['Publisher'], self.alias)
                         }
 
                 self.create_or_modify_journal(issn, args, crossref_list)
 
         return crossref_list
 
-class Crossref(Scraper):
+class CrossrefArticles(Scraper):
     """
     Gets crossref information for all articles with DOIs in the database.
 
@@ -75,8 +76,11 @@ class Crossref(Scraper):
             'base-url' : ("Base url of crossref API", "http://search.labs.crossref.org/dois")
             }
 
+    def scrape(self):
+        pass
+
     def process(self):
-        articles = Article.select().where(Article.doi)
+        articles = Article.select().where(~(Article.doi >> None))
         for article in articles:
             response = requests.get(self.setting('base-url'),
                     params = {'q' : article.doi}

@@ -25,6 +25,7 @@ class CSVFile(ArticleScraper):
 
     _settings = {
             "csv-file" : ("Path to file containing article data.", "articles.csv"),
+            "period" : ("Custom setting for article 'period'.", "manual"),
             "date-formats" : ( "Dictionary of regular expressions -> date formats.", {
                     "^[0-9]{4}$" : "%Y",
                     "^[0-9]{4}-[0-9]{2}$" : "%Y-%m",
@@ -52,7 +53,7 @@ class CSVFile(ArticleScraper):
     def process(self):
         data_file = os.path.join(self.cache_dir(), self.setting('data-file'))
         col_map = self.setting('column-mapping')
-        article_list = ArticleList.create(name = self.setting('list-name'))
+        article_list = ArticleList.create(name = self.setting('list-name'), source=self.setting('source'))
 
         with codecs.open(data_file, 'rU', encoding=self.setting('encoding')) as f:
             reader = csv.reader(f)
@@ -83,7 +84,7 @@ class CSVFile(ArticleScraper):
                 journal = Journal.create_or_update_by_issn({
                     'issn' : issn,
                     'title' : journal_title,
-                    'source' : self.alias
+                    'source' : self.setting('source')
                     })
 
                 date_published = None
@@ -96,8 +97,9 @@ class CSVFile(ArticleScraper):
                     raise Exception("No date format for %s" % raw_date)
 
                 article = Article.create(
+                        period = self.setting('period'),
                         title = title,
-                        source = self.alias,
+                        source = self.setting('source'),
                         doi = doi,
                         journal = journal,
                         date_published = date_published

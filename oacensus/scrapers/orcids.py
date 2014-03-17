@@ -13,6 +13,7 @@ class Orcid(ArticleScraper):
 
     _settings = {
             'orcid' : ("ORCID of author to process, or a list of ORCIDS.", None),
+            "period" : ("Custom setting for article 'period'.", "manual"),
             'orcid-data-file' : ("File to save data under.", "orcid.pickle")
             }
 
@@ -39,7 +40,7 @@ class Orcid(ArticleScraper):
         for response in responses:
             args = (response.orcid, response.given_name, response.family_name)
             list_name = "ORCID %s  Author: %s %s" % args
-            article_list = ArticleList.create(name = list_name, orcid = response.orcid)
+            article_list = ArticleList.create(name = list_name, orcid = response.orcid, source = self.alias)
 
             for pub in response.publications:
                 doi = None
@@ -51,6 +52,7 @@ class Orcid(ArticleScraper):
                 article = Article.create_or_update_by_doi({
                     'source' : self.alias,
                     'doi' : doi,
+                    "period" : self.setting('period'),
                     'url' : pub.url,
                     'title' : pub.title
                     })

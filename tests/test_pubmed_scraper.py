@@ -5,10 +5,13 @@ from oacensus.models import ArticleList
 from oacensus.scraper import Scraper
 from oacensus.utils import pubmed_name
 from tests.utils import setup_db
+from oacensus.models import delete_all
 
 setup_db()
 
 def test_pubmed_scraper():
+    delete_all()
+
     pubmed = Scraper.create_instance('pubmed')
     settings = {
         'search' : "science[journal] AND breast cancer",

@@ -1,10 +1,12 @@
 from oacensus.scraper import Scraper
 from oacensus.models import License
+from oacensus.models import delete_all
 from tests.utils import setup_db
 
 setup_db(create_licenses=False)
 
 def test_license_scraper_all_licenses():
+    delete_all(delete_licenses=True)
     assert License.select().count() == 0
     scraper = Scraper.create_instance('licenses')
     scraper.run()

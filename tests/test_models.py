@@ -1,4 +1,5 @@
 from oacensus.models import Article
+from oacensus.models import Repository
 from oacensus.models import Rating
 from oacensus.models import Instance
 from oacensus.models import Journal
@@ -16,7 +17,8 @@ def create_journal_and_article():
 def test_open_meta_common():
     journal, article = create_journal_and_article()
     rating = Rating.create(journal=journal, free_to_read=True, source="manual")
-    instance = Instance.create(article=article, free_to_read=True, source="manual")
+    repository = Repository.create(name="Test Repo", source="manual")
+    instance = Instance.create(article=article, repository=repository, free_to_read=True, source="manual")
 
     assert rating.free_to_read
     assert instance.free_to_read
@@ -82,5 +84,5 @@ def test_add_journal_to_list():
     journal.source = "test"
     journal.save()
 
-    journal_list.add_journal(journal)
+    journal_list.add_journal(journal, "test")
     assert journal_list.journals()[0] == journal

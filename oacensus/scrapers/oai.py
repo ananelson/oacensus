@@ -24,6 +24,7 @@ class OAIPMH(Scraper):
           }
 
     def scrape(self):
+        raise Exception("not finished")
         registry = MetadataRegistry()
         registry.registerReader('oai_dc', oai_dc_reader)
         url = self.setting('pmh-endpoint')

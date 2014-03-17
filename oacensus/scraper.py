@@ -2,13 +2,15 @@ from cashew import Plugin, PluginMeta
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY
-from oacensus.models import Journal
-from oacensus.models import JournalList
 from oacensus.models import Article
 from oacensus.models import ArticleList
+from oacensus.models import ArticleListMembership
+from oacensus.models import Instance
+from oacensus.models import Journal
+from oacensus.models import JournalList
+from oacensus.models import JournalListMembership
 from oacensus.models import Publisher
 from oacensus.models import Rating
-from oacensus.models import Instance
 from oacensus.utils import defaults
 from oacensus.utils import relativedelta_units
 import chardet
@@ -17,6 +19,10 @@ import hashlib
 import os
 import os.path
 import shutil
+import sys
+
+UTF8Writer = codecs.getwriter('utf8')
+sys.stdout = UTF8Writer(sys.stdout)
 
 class Scraper(Plugin):
     """
@@ -120,13 +126,17 @@ class Scraper(Plugin):
         shutil.rmtree(self.cache_dir(), ignore_errors=True)
 
     def remove_stored_data(self):
-        Article.delete_all_from_source(self.alias)
-        ArticleList.delete_all_from_source(self.alias)
-        Instance.delete_all_from_source(self.alias)
-        Journal.delete_all_from_source(self.alias)
-        JournalList.delete_all_from_source(self.alias)
-        Publisher.delete_all_from_source(self.alias)
-        Rating.delete_all_from_source(self.alias)
+        source = self.safe_setting('source', self.alias)
+        print "removing elements using source", source
+        Article.delete_all_from_source(source)
+        ArticleList.delete_all_from_source(source)
+        ArticleListMembership.delete_all_from_source(source)
+        Instance.delete_all_from_source(source)
+        Journal.delete_all_from_source(source)
+        JournalList.delete_all_from_source(source)
+        JournalListMembership.delete_all_from_source(source)
+        Publisher.delete_all_from_source(source)
+        Rating.delete_all_from_source(source)
 
     def is_data_cached(self):
         try:
@@ -138,8 +148,8 @@ class Scraper(Plugin):
                 cache_last_modified = datetime.fromtimestamp(mtime)
                 if cache_last_modified < datetime.now() - relativedelta_units(cache_expires, self.setting('cache-expires-units')):
                     print "clearing cache since content has expired"
-                    shutil.rmtree(self.cache_dir(), ignore_errors=True)
-                    self.purge()
+                    self.remove_cache_dir()
+                    self.remove_stored_data()
                     return False
                 else:
                     return True
@@ -171,10 +181,6 @@ class Scraper(Plugin):
         Working from the local cache, process data & add to db.
         """
         raise NotImplementedError()
-
-    def purge(self):
-        "Purge database records."
-        pass
 
 class ArticleScraper(Scraper):
     """
@@ -303,29 +309,22 @@ class JournalScraper(Scraper):
     Scrapers which generate or add metadata to journals.
     """
     _settings = {
-            "add-new-journals" : ("Whether to create new Journal instances if one doesn't already exist.", True),
+            "add-new-journals" : ("Whether to create new Journal instances if one doesn't already exist.", False),
             "update-journal-fields" : ("Whitelist of fields which should be applied when updating an existing journal.", []),
             "limit" : ("Limit of journals to process (for testing/dev)", None)
             }
 
     def create_or_modify_journal(self, issn, args, journal_list=None):
-        decoded_args = {}
-        for k, v in args.iteritems():
-            if isinstance(v, basestring):
-                decoded_args[k] = self.decode_encoded(v)
-            else:
-                decoded_args[k] = v
-
         journal = Journal.by_issn(issn)
         if journal is None and self.setting('add-new-journals'):
-            journal = self.create_new_journal(issn, decoded_args)
+            journal = self.create_new_journal(issn, args)
             self.print_progress("Created new journal: %s" % journal)
         elif journal is not None:
-            journal = self.modify_existing_journal(journal, issn, decoded_args)
+            journal = self.modify_existing_journal(journal, issn, args)
             self.print_progress("Modified existing journal: %s" % journal)
 
         if journal_list is not None and journal is not None:
-            journal_list.add_journal(journal)
+            journal_list.add_journal(journal, self.safe_setting('source', self.alias))
 
         return journal
 

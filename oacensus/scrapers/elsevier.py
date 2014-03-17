@@ -17,6 +17,7 @@ class ElsevierJournals(JournalScraper):
     _settings = {
             "base-url" : ("Base url to scrape.", "http://www.elsevier.com/journals/title/"),
             "data-file" : ("file to save data under", "elsevier-journal-list.html"),
+            "pages" : ("Override the list of pages (usually used for testing).", None),
             "non-alpha-pages" : (
                 "List of all pages to scrape which are named something other than a letter of the alphabet.",
                 ['other']
@@ -24,8 +25,13 @@ class ElsevierJournals(JournalScraper):
             }
 
     def scrape(self):
+        raise Exception("Elsevier website has changed, scraper must be re-written.")
         journals = []
-        pages = [l for l in string.ascii_lowercase] + self.setting('non-alpha-pages')
+        if self.setting('pages') is not None:
+            print "Using custom pages list"
+            pages = self.setting('pages')
+        else:
+            pages = [l for l in string.ascii_lowercase] + self.setting('non-alpha-pages')
 
         for page in pages:
             self.print_progress("  fetching page %s" % page)
