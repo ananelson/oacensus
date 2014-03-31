@@ -2,7 +2,8 @@ from oacensus.db import db
 from oacensus.models import License
 from oacensus.models import create_db_tables
 from oacensus.scraper import Scraper
-from sqlite3 import OperationalError
+import sqlite3
+import peewee
 import oacensus.load_plugins
 
 def setup_db(create_licenses=True):
@@ -10,7 +11,7 @@ def setup_db(create_licenses=True):
     try:
         db.init(':memory:')
         create_db_tables()
-    except OperationalError:
+    except peewee.OperationalError, sqlite3.OperationalError:
         pass
 
     if create_licenses and License.select().count() == 0:
