@@ -15,8 +15,10 @@ setup(
         install_requires = [
             'BeautifulSoup4',
             'PyYAML',
+            'chardet',
             'cashew>=0.2.0',
             'inflection',
+            'jinja2',
             'orcid-python',
             'peewee>=2.0.0',
             'pyoai>=2.4.4',

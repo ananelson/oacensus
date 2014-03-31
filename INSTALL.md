@@ -1,3 +1,9 @@
+## Dockerfile
+
+There is a Dockerfile which can be used to build a Docker container for
+development work, and a second Dockerfile-cache which can be used to create a
+persistent cache volume. For usage example see run-docker.sh
+
 ## Basic Installation
 
 oacensus is a standard Python package and can be installed in the standard
