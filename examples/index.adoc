@@ -210,10 +210,12 @@ Scrapers which add information to existing article entries.
 This scraper updates open access-related attributes for an article using data
 retrieved from the OAG API.
 
+{% if False %}
 [source,python]
 ----
 {{ d['/oacensus/scrapers/oag.py|pydoc']['OAG.update_article_with_license_info:source'] }}
 ----
+{% endif %}
 
 ==== Crossref
 

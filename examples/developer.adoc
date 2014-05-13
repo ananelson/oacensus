@@ -4,13 +4,338 @@
 :toc: right
 :toclevels: 5
 
+{% set models = d['models_info.json'].from_json() %}
+
+{% macro pydoc_source(filename, element) %}
+[source, python]
+----
+{{ d[filename + "|pydoc"][element + ":source"] }}
+----
+{% endmacro %}
+
 == Introduction
 
-This is developer documentation about the implementation of OACensus.
+This is developer documentation for OACensus.
 
-== Workflow Overview
+- [ ] Finish writing introduction or remove this section.
 
-The workflow needs to accomplish:
+== Development Environment
+
+The easiest way to create a development environment for OACensus is to use
+http://docker.io[Docker]. If you can't use Docker, then you can use the
+Dockerfile script as a guide for what software should be installed.
+http://blog.ananelson.com/2014/03/docker-isolated-and-reproducible/[This blog post]
+contains some background information as to how Docker is being used.
+
+{% set f = "docker/run-docker.sh" %}
+
+The `{{ f }}` script builds and launches two Docker images.
+
+The first image creates a (semi-)persistent cache which we'll use to store
+downloaded files as we run OACensus. By making this a separate volume, it's
+easy to preserve the cache even if we need to destroy and recreate the
+container we are working in. This part of the script builds the new container
+and, if it isn't already active, it mounts it:
+
+{{ d[f + '|idio']['make-cache'] }}
+
+The Dockerfile for the cache doesn't need to do much, it just needs to specify
+a lightweight base image and define where to mount volumes:
+
+----
+{{ d['docker/Dockerfile-cache'] }}
+----
+
+The next part of the script builds and then runs the container we will work in:
+
+{{ d['docker/run-docker.sh|idio']['make-container'] }}
+
+It mounts the persistent cache volume we just created, and it also mounts your
+local working checkout of the oacensus repository. You'll need to specify the
+location in the script, the default value is:
+
+{{ d['docker/run-docker.sh|idio']['oacensus-dir'] }}
+
+Again, please refer to 
+http://blog.ananelson.com/2014/03/docker-isolated-and-reproducible/[this blog post]
+to understand why this configuration was chosen. Feel free to set up whatever
+configuration works best for you, this is just one way to do it.
+
+The Dockerfile begins by defining the base image:
+
+{{ d['docker/Dockerfile|idio']['base'] }}
+
+We need to do some tweaking of the locale so Unicode will work correctly (this
+is because the Docker base image we are using is so minimal, usually your
+Desktop operating system will already be configured):
+
+{{ d['docker/Dockerfile|idio']['locale'] }}
+
+To make it faster to install software repeatedly, you can set up
+`squid-deb-proxy` and this will use previously downloaded installers where
+available. This must already be running on your host system, and this line in
+the Dockerfile configures the container to use it:
+
+{{ d['docker/Dockerfile|idio']['squid-deb-proxy'] }}
+
+Make sure package descriptions are up to date, and install some basic packaging
+tools to help with later installs:
+
+{{ d['docker/Dockerfile|idio']['update'] }}
+
+Install some utilities which will be useful to have when working on the container later:
+
+{{ d['docker/Dockerfile|idio']['utilities'] }}
+
+Install some libraries which will help later installs go more smoothly:
+
+{{ d['docker/Dockerfile|idio']['libraries'] }}
+
+Install Python and pip for package management:
+
+{{ d['docker/Dockerfile|idio']['python'] }}
+
+Install dependencies for the lxml package, and then install lxml:
+
+{{ d['docker/Dockerfile|idio']['lxml'] }}
+
+Install scipy, numpy and matplotlib for reporting:
+
+{{ d['docker/Dockerfile|idio']['scipy'] }}
+
+Install nose for running tests:
+
+{{ d['docker/Dockerfile|idio']['nose'] }}
+
+Install Ruby and asciidoctor for compiling documentation:
+
+{{ d['docker/Dockerfile|idio']['asciidoctor'] }}
+
+Install dexy for automating documentation:
+
+{{ d['docker/Dockerfile|idio']['dexy'] }}
+
+Create a new system user named `oacensus`, and set a password:
+
+{{ d['docker/Dockerfile|idio']['create-user'] }}
+
+You will need to use this password when you have to `sudo` commands within the running container.
+
+Finally, we instruct Docker to switch to the new user and ensure the `HOME` variable is set correctly:
+
+{{ d['docker/Dockerfile|idio']['switch-to-user'] }}
+
+When the `run-docker.sh` script finishes, you should be in the running container.
+
+The first time you run the container after building it, you will need to fix home directory permissions.
+
+{{ d['run-in-new-container.sh|idio|asciisyn']['fix-permissions'] }}
+
+And you'll want to install the oacensus package using pip:
+
+{{ d['run-in-new-container.sh|idio|asciisyn']['install-oacensus'] }}
+
+== Running Tests
+
+{% set f = "run-tests.sh" %}
+
+It's recommended to run tests via the `{{ f }}` script which ensures that tests
+are run both with and without a cache present.
+
+{{ d['run-tests.sh|idio|asciisyn'] }}
+
+== Database Models
+
+In this section we introduce the different database classes, how they relate to
+one another, and how they are used for OACensus.
+
+=== ModelBase
+
+The `ModelBase` class provides common methods and fields shared by all database model classes:
+
+{{ pydoc_source("oacensus/models.py", "ModelBase") }}
+
+=== Article
+
+The basic element we are interested in is the Article. The remaining models
+exist to provide information about articles.
+
+Here is the source code for the Article class:
+
+{{ pydoc_source("oacensus/models.py", "Article") }}
+
+=== Repository
+
+A repository is a place to "deposit" articles. This term is used loosely. It
+may mean that an electronic copy of the article is available for download, or
+it may simply mean that there's some metadata available about the article.
+
+The Repository class just represents these virtual locations, so it's a simple
+model:
+
+{{ pydoc_source("oacensus/models.py", "Repository") }}
+
+=== Instance
+
+When an article is "deposited" in a repository, we refer to this occurrence as
+an "instance". The Instance class acts as a join table between the Article and
+Repository models.
+
+{{ pydoc_source("oacensus/models.py", "Instance") }}
+
+The Instance class is a subclass of OpenMetaCommon and so some fields and methods are defined there:
+
+{{ pydoc_source("oacensus/models.py", "OpenMetaCommon") }}
+
+=== Journal
+
+While the Instance relationship between articles and repositories is
+many-to-many, there's also a many-to-one relationship from articles to
+journals. We assume that an article can be published in a single Journal:
+
+{{ pydoc_source("oacensus/models.py", "Journal") }}
+
+=== Rating
+
+Metadata about a Journal is stored in ratings. There may be multiple ratings
+for a single Journal. Here's the Rating class source:
+
+{{ pydoc_source("oacensus/models.py", "Rating") }}
+
+There are some commonalities between a Rating and an Instance, so it also inherits from OpenMetaCommon:
+
+{{ pydoc_source("oacensus/models.py", "OpenMetaCommon") }}
+
+=== Publisher
+
+A Journal belongs to a single Publisher:
+
+{{ pydoc_source("oacensus/models.py", "Publisher") }}
+
+=== License
+
+Both Ratings and Instances can provide information about a License which pertains to an article or a journal.
+
+{{ pydoc_source("oacensus/models.py", "License") }}
+
+The LicenseAlias table stores alternate names for various licenses:
+
+{{ pydoc_source("oacensus/models.py", "LicenseAlias") }}
+
+=== Lists
+
+The JournalList and ArticleList classes, unsurprisingly, allow you to create lists of journals and articles.
+
+{{ pydoc_source("oacensus/models.py", "JournalList") }}
+
+{{ pydoc_source("oacensus/models.py", "ArticleList") }}
+
+Here are the join tables:
+
+{{ pydoc_source("oacensus/models.py", "JournalListMembership") }}
+{{ pydoc_source("oacensus/models.py", "ArticleListMembership") }}
+
+== Is It Open Access?
+
+The point of all these database models is to enable us to ask the question "Is
+it open access?". So, let's explore how we will do that.
+
+There are two different components to Open Access. Availability and license.
+Availability asks "Is this article freely available for reading?". License asks
+"What are the terms under which this article's contents are licensed?" Once we
+know the license, we then want to ask "Is this an open license?"
+
+The question of free-to-read is simpler. Either there's a link for obtaining the
+article's contents, or there's not. The question of whether a license is "open"
+is more fluid. There are different definitions of "open", and depending on the
+context of your task, you might need to use a particular definition one day,
+and a different definition the next.
+
+=== Is it Free to Read?
+
+Let's first examine how we will answer the simpler question, "Is this article
+Free to Read?" The article can be made freely available to read either by being
+published in a journal which is free to read, or by being made freely available
+through some other means. We will represent each of these "other means" as an
+instance in a repository. For example, the repository might be an actual
+institutional repository where the article is available for download.
+
+So, the question "Is this article free to read?" can be rephrased as "Is this
+article either in a free to read journal or a free to read instance in at least
+one repository?" Or, in code:
+
+{{ pydoc_source("oacensus/models.py", "Article.is_free_to_read") }}
+
+With:
+
+{{ pydoc_source("oacensus/models.py", "Article.free_to_read_instances") }}
+
+And:
+
+{{ pydoc_source("oacensus/models.py", "Journal.is_free_to_read") }}
+
+We can verify in testing that `is_free_to_read` returns true if the journal is free to read:
+
+{{ pydoc_source("tests/test_models.py", "test_article_free_to_read_from_journal") }}
+
+Or if there's a free to read instance:
+
+{{ pydoc_source("tests/test_models.py", "test_article_free_to_read_from_repository") }}
+
+And not otherwise:
+
+{{ pydoc_source("tests/test_models.py", "test_article_not_free_to_read") }}
+
+The `free_to_read` attribute on a Rating or an Instance is determined by the
+scrapers which obtain this data from various sources.
+
+There's also a `validate_downloadable` stub method which could be implemented
+to allow users to test whether a provided URL is valid and the resulting file
+appears to be the correct article file. Currently this does nothing:
+
+{{ pydoc_source("oacensus/models.py", "OpenMetaCommon.validate_downloadable") }}
+
+- [ ] Journal free to read might need to accept dates - open a github issue and link from here.
+
+=== Is it openly licensed?
+
+In order to determine if an article is openly licensed, we need to do two things:
+
+. Identify the applicable license.
+. Determine the openness of the license.
+
+The license for an article may either be one which is applied to the Journal in
+which the Article is published, or the license may be specified in an Instance
+within a Repository.
+
+Here's the Journal class's `licenses` method:
+
+{{ pydoc_source("oacensus/models.py", "Journal.licenses") }}
+
+Here's the Article class's `instance_licenses` method:
+
+{{ pydoc_source("oacensus/models.py", "Article.instance_licenses") }}
+
+And here's the Article class's `licenses` method:
+
+{{ pydoc_source("oacensus/models.py", "Article.licenses") }}
+
+We can use this to implement a `has_license` method:
+
+{{ pydoc_source("oacensus/models.py", "Article.has_license") }}
+
+And a `has_open_license` method, with the option to specify a list of licenses to be considered open:
+
+{{ pydoc_source("oacensus/models.py", "Article.has_open_license") }}
+
+Here's a test showing how adding licenses to a Journal Rating or an Article
+Instance means they are both attached to the Article:
+
+{{ pydoc_source("tests/test_models.py", "test_article_licenses") }}
+
+== Scraping Workflow
+
+The scraping workflow needs to accomplish:
 
 - obtaining raw data from remote data sources
 - parsing the raw data into normalized values
@@ -19,34 +344,207 @@ The workflow needs to accomplish:
 Subsequent runs of the system should be able to add incremental new data or
 selectively replace existing data which needs updating.
 
-Different sources of data are captured using different Scrapers. Each scraper
-has an alias and various parameters which can be set by the users to configure
-and customize the sources of data they wish to use for a given project.
+The scraping process is broken into two stages. In the first stage, remote data
+is fetched and cached in a raw or mostly-raw state. In the second stage, the
+cached data is parsed, processed and stored in the database. If data is already
+cached locally, this step should not need to be repeated unless the cache
+expires or is emptied by the user. Similarly, if the data is already in the
+database (and the first stage data is cached), then the parsing should not need
+to be repeated.
 
-=== Types of Scrapers
+The `is_data_cached` method tells us if data has already been cached locally:
 
-Scrapers need to know the types of data they will be processing so they can
-behave in an intuitive way.
+{{ pydoc_source("oacensus/scraper.py", "Scraper.is_data_cached") }}
 
-==== Article Scrapers
+And the `is_data_stored` method tells us if the data is already in the
+database:
 
-Article scrapers obtain information about individual articles.
+{{ pydoc_source("oacensus/scraper.py", "Scraper.is_data_stored") }}
 
-In order to be able to cumulatively add new articles to a database, article
-scrapers should populate the database for a time period at a time, and should
-only populate fully complete time periods.
+We assume that the presence of any records generated by the active source means
+that all data is stored. If there any any problems during scraping, then that
+scraper should throw an exception. All exceptions are caught and all database
+rows are removed prior to re-raising the exception.
 
-A `start-month` and `end-month` parameter should be specified, and each scraper
-should know how to partition its query up over monthly intervals from the start
-to the end.
+Here's the `run` method for the base `Scraper` class:
 
-Each period should be scraped and cached separately, and in subsequent runs if
-a period is found to be in the database already, it is not re-downloaded.
+{{ pydoc_source("oacensus/scraper.py", "Scraper.run") }}
 
-A cache table in the DB will store metadata about each period, so that even if
-there are 0 records in a period, it will not be re-scraped.
+The `run` method should not normally be overridden in a subclass.
 
-Some article scrapers will also populate information about Repository/Journal
-and will organize their articles into ArticleList instances.
+For most scrapers, the cache directory is given a location based on a hash of
+all the settings. If any settings change, the cache is invalidated.
 
+{{ pydoc_source("oacensus/scraper.py", "Scraper.hashcode") }}
+
+{{ pydoc_source("oacensus/scraper.py", "Scraper.hash_settings") }}
+
+Some scrapers have more fine-grained caching. The ArticleScraper caches data
+for each period separately.
+
+{{ pydoc_source("oacensus/scraper.py", "ArticleScraper.period_hash_settings") }}
+
+{{ pydoc_source("oacensus/scraper.py", "ArticleScraper.period_hashcode") }}
+
+Scrapers should implement the `scrape` and `process` methods to do all the work
+needed in each step.
+
+- [ ] Test removing cache dirs for Scraper
+- [ ] Test removing cache dirs for Article Scraper
+- [ ] Test database methods for Article Scraper
+
+== Implementing Scrapers and Reports
+
+=== Plugins
+
+Reports and Scrapers are examples of Cashew plugins. If you use an existing
+scraper or report as your basis, you shouldn't need to worry too much about how
+plugins work, but you can read the Cashew docs for more information:
+
+http://dexy.github.io/cashew/
+
+One thing you need to do is add an import for any new modules you write to `load_plugins.py`:
+
+[source, python]
+----
+{{ d['/oacensus/load_plugins.py'] }}
+----
+
+If you don't add an import, then the plugin won't be registered and its alias
+won't be available when you run the `oacensus` command.
+
+=== Scraping
+
+During the `scrape` stage, data files should be written to the scraper's `work_dir()`, which is determined via:
+
+{{ pydoc_source("oacensus/scraper.py", "Scraper.work_dir") }}
+
+After the scraper has run successfully (without throwing exceptions) the
+contents of the work_dir are copied to the cache_dir. Data should not be
+written directly to the cache_dir, only the work_dir.
+
+Here's an example from a Demo scraper of writing to the work dir:
+
+{{ pydoc_source("oacensus/scrapers/demo.py", "Demo.scrape") }}
+
+=== Parsing
+
+During the `process` stage, data files should be read from the `cache_dir`.
+
+{{ pydoc_source("oacensus/scraper.py", "Scraper.cache_dir") }}
+
+When creating new objects in the database, a `source` should always be
+specified. The `db_source` method returns either the alias or the `source`
+setting if a one has been specified, in case you have multiple versions of the
+same scraper running.
+
+- [ ] test that multiple scrapers based on the same alias works
+
+Here's an example of a `process` method which reads data from the cache dir and
+generates database entries:
+
+{{ pydoc_source("oacensus/scrapers/demo.py", "Demo.process") }}
+
+=== Reporting
+
+{{ pydoc_source("oacensus/reports/text_dump.py", "TextDump") }}
+
+=== Running
+
+{% set f = "test-demo.yaml" %}
+
+To run oacensus, you first need to create a YAML configuration file. Here's one called `{{ f }}`:
+
+{{ d[f + "|asciisyn"] }}
+
+Then you run the oacensus command with:
+
+{{ d['run-demo.sh|idio|asciisyn']['run'] }}
+
+After running this command, you generate reports you want via:
+
+{{ d['run-demo.sh|idio|asciisyn']['reports'] }}
+
+The output from running the command looks like:
+
+----
+{{ d['run-demo.sh|sh'] }}
+----
+
+{% set f = "dump.txt" %}
+
+The `textdump` report generates a file named {{ f }}, here's what it looks like:
+
+----
+{{ d[f] }}
+----
+
+== Scraper Classes
+
+=== JournalScraper
+
+=== ArticleScraper
+
+
+== Implemented Scrapers
+
+=== BioMed Central
+
+{% set settings = json.loads(d['oacensus/scrapers/biomedcentral.py|pydoc']['BiomedCentralJournals._settings:value']) %}
+
+----
+{{ d['oacensus/scrapers/biomedcentral.py|pydoc']['BiomedCentralJournals:doc'] }}
+----
+
+The BioMedCentral website contains a list of all the journals published by
+BioMedCentral. We assume that these are all free to read, and that they are all
+licensed as {{ settings.license[1] }} (this license is a setting which can be
+changed).
+
+==== Scraping
+
+We need to scrape the website to obtain a list of Journal names and assign
+ratings to the journals.
+
+The first page we will parse, {{ settings.url[1] }}, contains a list of all
+journals.
+
+{% set m = "journal_list_iter" %}
+
+The `{{ m }}` method yields each block of journal information:
+
+{{ pydoc_source("oacensus/scrapers/biomedcentral.py", "BiomedCentralJournals." + m) }}
+
+We'll use this method a few times.
+
+{% set m = "scrape" %}
+
+Here's our `{{ m }}` method:
+
+{{ pydoc_source("oacensus/scrapers/biomedcentral.py", "BiomedCentralJournals." + m) }}
+
+For each journal we find, we then need to scrape its individual data, and we
+need to verify that we have found its ISSN:
+
+{% set m = "scrape_journal" %}
+
+The `{{ m }}` method does this:
+
+{{ pydoc_source("oacensus/scrapers/biomedcentral.py", "BiomedCentralJournals." + m) }}
+
+{% set m = "journal_filename" %}
+In order to create a file-system-friendly and reproducible file name for each
+journal we download, we take a hash of its URL. We'll use this `{{ m }}` method
+in both the scraping and parsing phases:
+
+{{ pydoc_source("oacensus/scrapers/biomedcentral.py", "BiomedCentralJournals." + m) }}
+
+At this point we have scraped one page containing the list of all journals, and
+also scraped each journal's individual information page. All these files are in
+the cache.
+
+==== Parsing
+
+{% set m = "process" %}
+{{ pydoc_source("oacensus/scrapers/biomedcentral.py", "BiomedCentralJournals." + m) }}
 

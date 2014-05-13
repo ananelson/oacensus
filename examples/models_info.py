@@ -13,7 +13,6 @@ for name, cls in inspect.getmembers(oacensus.models):
         models[name] = {}
         for field_name, field in cls._meta.fields.iteritems():
             models[name][field_name] = {
-                    'field_attributes' : field.field_attributes(),
                     'verbose_name' : field.verbose_name,
                     'name' : field.name,
                     'null' : field.null,
