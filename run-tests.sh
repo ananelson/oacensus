@@ -3,7 +3,7 @@ set -e
 CACHE_DIR=".oacensus"
 
 echo "Removing cache at $CACHE_DIR"
-rm -r $CACHE_DIR
+rm -rf $CACHE_DIR
 
 echo "Running tests with no cache..."
 nosetests

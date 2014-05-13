@@ -173,16 +173,23 @@ class Pubmed(NCBI):
         except ArticleList.DoesNotExist:
             return False
 
-    def process_period(self, start_date, end_date):
-        nihm_repository = Repository.find_or_create_by_name(nihm_name, self.alias)
-        pmc_repository = Repository.find_or_create_by_name(pmc_name, self.alias)
-        pubmed_repository = Repository.find_or_create_by_name(pubmed_name, self.alias)
+    def create_repository(self, name):
+        return Repository.create_or_update_by_name({"name" : name, "source" : self.db_source()})
 
-        article_list = ArticleList.create(
-            source=self.alias,
-            name=self.article_list_name(start_date))
+    def create_article_list(self, start_date):
+        return ArticleList.create(
+                name = self.article_list_name(start_date),
+                source = self.db_source())
+
+    def process_period(self, start_date, end_date):
+        nihm_repository = self.create_repository(nihm_name)
+        pmc_repository = self.create_repository(pmc_name)
+        pubmed_repository = self.create_repository(pubmed_name)
+
+        article_list = self.create_article_list(start_date)
 
         cache_dir = self.period_cache_dir(start_date)
+
         for filename in os.listdir(cache_dir):
             filepath = os.path.join(cache_dir, filename)
             with open(filepath, 'rb') as f:
@@ -209,7 +216,7 @@ class Pubmed(NCBI):
                     journal = Journal.create_or_update_by_issn({
                         'issn' : issn,
                         'title' : journal_title,
-                        'source' : self.alias
+                        'source' : self.db_source()
                         })
 
                     # Parse article info
@@ -250,7 +257,7 @@ class Pubmed(NCBI):
 
                     article = Article.create(
                             title = title,
-                            source = self.alias,
+                            source = self.db_source(),
                             doi = doi,
                             journal = journal,
                             period = start_date.strftime("%Y-%m"),
@@ -262,23 +269,23 @@ class Pubmed(NCBI):
                                 article=article,
                                 repository=nihm_repository,
                                 identifier=nihm_id,
-                                source=self.alias)
+                                source=self.db_source())
 
                     if pmc_id is not None:
                         Instance.create(
                                 article=article,
                                 repository=pmc_repository,
                                 identifier=pmc_id,
-                                source=self.alias)
+                                source=self.db_source())
 
                     if pubmed_id is not None:
                         Instance.create(
                                 article=article,
                                 repository=pubmed_repository,
                                 identifier=pubmed_id,
-                                source=self.alias)
+                                source=self.db_source())
 
-                    article_list.add_article(article)
+                    article_list.add_article(article, self.db_source())
 
         self.print_progress("  %s" % article_list)
         return article_list

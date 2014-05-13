@@ -3,14 +3,15 @@ from dateutil import relativedelta
 from oacensus.commands import defaults
 from oacensus.scraper import Scraper
 from tests.utils import setup_db
+from oacensus.models import Publisher
 
 setup_db()
 
-class TestScraper(Scraper):
+class DummyScraper(Scraper):
     """
-    Scraper for testing scraper methods.
+    Scraper which does nothing for testing scraper methods.
     """
-    aliases = ['testscraper']
+    aliases = ['dummyscraper']
 
     def scrape(self):
         pass
@@ -19,11 +20,11 @@ class TestScraper(Scraper):
         pass
 
 def test_hashcode():
-    scraper = Scraper.create_instance('testscraper', defaults)
+    scraper = Scraper.create_instance('dummyscraper', defaults)
     assert len(scraper.hashcode(scraper.hash_settings())) == 32
 
 def test_run():
-    scraper = Scraper.create_instance('testscraper', defaults)
+    scraper = Scraper.create_instance('dummyscraper', defaults)
     scraper.run()
 
 def make_article_scraper(overrides = None):
@@ -40,7 +41,6 @@ def test_no_end_month_is_ok():
         })
 
     periods = [p for p in scraper.start_dates()]
-    print "final period", periods[-1]
     assert periods[-1] < datetime.now()
     assert periods[-1] > datetime.now() + relativedelta.relativedelta(months = -2)
 
@@ -65,7 +65,6 @@ def test_invalid_end_month_after_today():
         scraper.start_dates()
         assert False, "should not be here"
     except Exception as e:
-        print str(e)
         assert "before the current date" in str(e)
 
 def test_article_scraper_recurrences():
@@ -87,3 +86,26 @@ def test_article_scraper_periods():
     for start_month, end_month in scraper.periods():
         assert end_month > start_month
         assert relativedelta.relativedelta(end_month, start_month).months == 1
+
+class ScraperWithParseException(Scraper):
+    """
+    A scraper which generates an exception halfway through parsing, when some
+    data has already been written to the database.
+    """
+    aliases = ['parseexception']
+
+    def scrape(self):
+        pass
+
+    def process(self):
+        publisher = Publisher.create(name="A Publisher", source=self.db_source())
+        assert self.is_data_stored()
+        raise Exception("Stop here for the test.")
+
+def test_scraper_has_no_data_stored_after_exception():
+    scraper = Scraper.create_instance('parseexception', defaults)
+    try:
+        scraper.run()
+    except Exception:
+        pass
+    assert not scraper.is_data_stored()

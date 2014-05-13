@@ -114,7 +114,9 @@ def test_pubmed_single_article():
         'end-period' : "2008-12"
         }
     pubmed.update_settings(settings)
-    article_list = pubmed.run()[0]
+    result = pubmed.run()
+    print "result is", result
+    article_list = result[0]
 
     assert len(article_list.articles()) == 1
     article = article_list.articles()[0]

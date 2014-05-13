@@ -2,17 +2,17 @@ from oacensus.scraper import Scraper
 import datetime
 
 from tests.utils import setup_db
-
 setup_db()
 
 def test_scrape():
-    list_name = "Test List"
-    source = "custom-source"
-    csv = Scraper.create_instance('csvfile')
-    csv.update_settings({
-        'csv-file' : 'tests/test.csv',
+    list_name = "Articles From a CSV File"
+    source = "custom-article-list"
+    scraper = Scraper.create_instance('csvarticles')
+    scraper.update_settings({
+        'location' : 'tests/test.csv',
         "list-name" : list_name,
         'source' : source,
+        "period" : "unknown",
         'column-mapping' : {
             "DOI" : 'doi',
             "ISSN" : 'journal.issn',
@@ -21,7 +21,7 @@ def test_scrape():
             "Journal Title" : 'journal.title'
         }
     })
-    article_list = csv.run()
+    article_list = scraper.run()
     assert len(article_list) == 100
     assert article_list.name == list_name
     assert article_list.source == source

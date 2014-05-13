@@ -1,4 +1,12 @@
 examples/*.adoc|jinja|asciidoctor:
+    - demo
+    - docker/Dockerfile-cache
+    - docker/Dockerfile|idio|asciisyn:
+        - idio : { ext : .txt }
+        - asciisyn : { lexer : bash }
+    - .sh|idio|asciisyn:
+        - idio : { ext : .txt }
+        - asciisyn : { lexer : bash }
     - examples/models_info.py|py:
         - py : { add-new-files: ['.json'] }
     - examples/example1.sh|idio|shint|asciisyn:
@@ -17,4 +25,12 @@ examples/*.adoc|jinja|asciidoctor:
     - examples/*.yaml|idio|asciisyn:
         - idio: { ext : '.txt' }
     - examples/*.yaml|asciisyn
+    - oacensus/*.py:
+        - output: False
     - oacensus/*.py|pydoc
+    - tests/*.py|pydoc
+
+demo:
+    - examples/run-demo.sh|sh:
+        - sh: { add-new-files : True }
+        - examples/test-demo.yaml

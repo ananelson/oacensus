@@ -1,5 +1,4 @@
 from peewee import *
-
 from oacensus.db import db
 
 class ModelBase(Model):
@@ -29,6 +28,53 @@ class ModelBase(Model):
     def count_from_source(klass, source):
         return klass.select().where(klass.source == source).count()
 
+    @classmethod
+    def exist_records_from_source(klass, source):
+        count = klass.count_from_source(source)
+        return klass.count_from_source(source) > 0
+
+    @classmethod
+    def find_or_create_by_name(klass, args):
+        name = args['name']
+        try:
+            return klass.get(klass.name == name)
+        except klass.DoesNotExist:
+            return klass.create(**args)
+
+    @classmethod
+    def update_or_create_by_name(cls, args):
+        name = args['name']
+        try:
+            item = cls.get(cls.name == name)
+            for k, v in args.iteritems():
+                if k != 'source':
+                    setattr(item, k, v)
+            item.save()
+            return item
+        except klass.DoesNotExist:
+            return klass.create(**args)
+
+    @classmethod
+    def find_or_create_by_title(klass, args):
+        title = args['title']
+        try:
+            return klass.get(klass.title == title)
+        except klass.DoesNotExist:
+            return klass.create(**args)
+
+    @classmethod
+    def update_or_create_by_title(cls, args):
+        title = args['title']
+        try:
+            item = cls.get(cls.title == title)
+            for k, v in args.iteritems():
+                if k != 'source':
+                    setattr(item, k, v)
+            item.save()
+            return item
+        except klass.DoesNotExist:
+            return klass.create(**args)
+
     def __unicode__(self):
         return u"TODO IMPLEMENT UNICODE FOR %s" % self.__class__.__name__
 
@@ -55,19 +101,10 @@ class LicenseAlias(ModelBase):
     alias = CharField(unique=True)
 
 class Publisher(ModelBase):
-    name = CharField()
+    name = CharField(index=True, unique=True)
 
     def __unicode__(self):
         return u"<Publisher {0}: {1}>".format(self.id, self.name)
-
-    @classmethod
-    def find_or_create_by_name(cls, name, source):
-        try:
-            publisher = cls.get(cls.name == name)
-        except Publisher.DoesNotExist:
-            publisher = Publisher.create(name=name, source=source)
-
-        return publisher
 
 class Journal(ModelBase):
     title = CharField(index=True,
@@ -99,7 +136,15 @@ class Journal(ModelBase):
         return u"<Journal {0} [{1}]: {2}>".format(self.id, self.issn, self.truncate_title())
 
     @classmethod
-    def create_or_update_by_issn(cls, args):
+    def find_or_create_by_issn(klass, args):
+        issn = args['issn']
+        try:
+            return klass.get(klass.issn == issn)
+        except klass.DoesNotExist:
+            return klass.create(**args)
+
+    @classmethod
+    def update_or_create_by_issn(cls, args):
         issn = args['issn']
         try:
             journal = cls.get(cls.issn == issn)
@@ -125,6 +170,9 @@ class Journal(ModelBase):
             raise Exception("date ranges not implemented yet")
         return any(rating.free_to_read for rating in self.ratings)
 
+    def licenses(self):
+        return [rating.license for rating in self.ratings if rating.license != None]
+
 class Article(ModelBase):
     title = CharField(
         help_text="Title of article.")
@@ -134,21 +182,51 @@ class Article(ModelBase):
         help_text="Date on which article was published.")
     period = CharField(
         help_text="Name of date-based period in which this article was scraped.")
+    url = CharField(null=True,
+        help_text="Web page for article information.")
     journal = ForeignKeyField(Journal, null=True,
         help_text="Journal object for journal in which article was published.")
-    url = CharField(null=True,
-        help_text="Web page for article information. Not a download URL, does not imply anything.")
 
     def __unicode__(self):
         return u'{0}'.format(self.truncate_title())
 
     def instance_for(self, repository_name):
+        """
+        Retrieves one of this article's instances, for the provided repository name.
+        """
         instances = self.instances.join(Repository).where(Repository.name == repository_name)
         if instances.count() > 0:
             return instances[0]
 
+    def free_to_read_instances(self):
+        return self.instances.select().where(Instance.free_to_read == True)
+
+    def is_free_to_read(self):
+        return self.journal.is_free_to_read() or self.free_to_read_instances().count() > 0
+
+    def instance_licenses(self):
+        return [instance.license for instance in self.instances if instance.license != None]
+
+    def licenses(self):
+        """
+        Return a list of all applicable licenses.
+        """
+        return self.journal.licenses() + self.instance_licenses()
+
+    def has_license(self):
+        return len(self.licenses()) > 0
+
+    def has_open_license(self, open_licenses = None):
+        article_open_licenses = [license for license in self.licenses() 
+                if (open_licenses is None) or (license in open_licenses)]
+        return len(article_open_licenses) > 0
+
     @classmethod
     def create_or_update_by_doi(cls, args):
+        """
+        If an article with DOI corresponding to the 'doi' arg exists, update
+        its attributes using the remaining args. If not, create it.
+        """
         try:
             article = cls.get(cls.doi == args['doi'])
             for k, v in args.iteritems():
@@ -156,7 +234,6 @@ class Article(ModelBase):
             article.save()
         except Article.DoesNotExist:
             article = Article.create(**args)
-
         return article
 
 class Repository(ModelBase):
@@ -165,13 +242,18 @@ class Repository(ModelBase):
     info_url = CharField(null=True,
             help_text = "For convenience, URL of info page for the repository.")
 
-    @classmethod
-    def find_or_create_by_name(cls, name, source):
-        try:
-            repo = cls.get(cls.name == name)
-        except Repository.DoesNotExist:
-            repo = Repository.create(name=name, source=source)
+    def __unicode__(self):
+        return u'{0}'.format(self.name)
 
+    @classmethod
+    def create_or_update_by_name(cls, args):
+        try:
+            repo = cls.get(cls.name == args['name'])
+            for k, v in args.iteritems():
+                setattr(repo, k, v)
+            repo.save()
+        except Repository.DoesNotExist:
+            repo = Repository.create(**args)
         return repo
 
 class OpenMetaCommon(ModelBase):
@@ -214,7 +296,7 @@ class Instance(OpenMetaCommon):
             help_text = "Expected file checksum if article is downloadable.")
 
     def __unicode__(self):
-        return u"<Instance '{0}' ({2}) in {1}>".format(self.article.truncate_title(), self.repository.name, self.identifier)
+        return u"<Instance '{0}' (id: {2}) in {1}>".format(self.article.truncate_title(), self.repository.name, self.identifier)
 
 class JournalList(ModelBase):
     name = CharField()
@@ -257,11 +339,12 @@ class ArticleList(ModelBase):
     def __getitem__(self, key):
         return self.memberships[key].article
 
-    def add_article(self, article):
+    def add_article(self, article, source):
         ArticleListMembership(
             article_list = self,
-            source = 'unknown',
-            article = article).save()
+            source = source,
+            article = article
+        ).save()
 
     def articles(self):
         return [membership.article for membership in self.memberships]
@@ -270,33 +353,17 @@ class ArticleListMembership(ModelBase):
     article_list = ForeignKeyField(ArticleList, related_name="memberships")
     article = ForeignKeyField(Article, related_name="memberships")
 
+model_classes = [Article, ArticleList, ArticleListMembership, Instance,
+        Journal, JournalList, JournalListMembership, License, LicenseAlias,
+        Publisher, Rating, Repository]
+
+license_classes = [License, LicenseAlias]
+
 def create_db_tables():
-    Article.create_table()
-    ArticleList.create_table()
-    ArticleListMembership.create_table()
-    Instance.create_table()
-    Rating.create_table()
-    License.create_table()
-    LicenseAlias.create_table()
-    Journal.create_table()
-    JournalList.create_table()
-    JournalListMembership.create_table()
-    Publisher.create_table()
-    Repository.create_table()
+    for klass in model_classes:
+        klass.create_table()
 
 def delete_all(delete_licenses = False):
-    Article.delete().execute()
-    ArticleList.delete().execute()
-    ArticleListMembership.delete().execute()
-    Instance.delete().execute()
-    Rating.delete().execute()
-    Journal.delete().execute()
-    JournalList.delete().execute()
-    JournalListMembership.delete().execute()
-    Publisher.delete().execute()
-    Repository.delete().execute()
-
-    if delete_licenses:
-        License.delete().execute()
-        LicenseAlias.delete().execute()
-
+    for klass in model_classes:
+        if delete_licenses or klass not in license_classes:
+            klass.delete().execute()

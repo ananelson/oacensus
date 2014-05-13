@@ -11,6 +11,7 @@ from oacensus.models import JournalList
 from oacensus.models import JournalListMembership
 from oacensus.models import Publisher
 from oacensus.models import Rating
+from oacensus.models import model_classes
 from oacensus.utils import defaults
 from oacensus.utils import relativedelta_units
 import chardet
@@ -64,7 +65,9 @@ class Scraper(Plugin):
         """
         Dictionary of settings which should be used to construct hash.
         """
-        return dict((k, v) for k, v in self.setting_values().iteritems() if not k in self.setting('no-hash-settings'))
+        return dict((k, v)
+                for k, v in self.setting_values().iteritems()
+                if not k in self.setting('no-hash-settings'))
 
     def hashstring(self, settings):
         """
@@ -85,7 +88,7 @@ class Scraper(Plugin):
         if self.is_data_cached():
             self.print_progress("  scraped data is already cached")
         else:
-            # Make sure databsae is clear of old data.
+            # Make sure database is cleared of old data.
             self.remove_stored_data()
             assert not self.is_data_stored()
 
@@ -98,7 +101,15 @@ class Scraper(Plugin):
             self.print_progress("  data is already stored")
         else:
             self.print_progress("  calling process method...")
-            return self.process()
+            try:
+                return self.process()
+            except ArticleScraperException:
+                # don't need to clean up db here, it's already done in
+                # ArticleScraper for the affected period
+                raise
+            except Exception:
+                self.remove_stored_data()
+                raise
 
     # Cache and Work Dirs
 
@@ -125,18 +136,13 @@ class Scraper(Plugin):
         assert os.path.abspath(".") in os.path.abspath(self.cache_dir())
         shutil.rmtree(self.cache_dir(), ignore_errors=True)
 
+    def db_source(self):
+        return self.safe_setting('source', self.alias)
+
     def remove_stored_data(self):
-        source = self.safe_setting('source', self.alias)
-        print "removing elements using source", source
-        Article.delete_all_from_source(source)
-        ArticleList.delete_all_from_source(source)
-        ArticleListMembership.delete_all_from_source(source)
-        Instance.delete_all_from_source(source)
-        Journal.delete_all_from_source(source)
-        JournalList.delete_all_from_source(source)
-        JournalListMembership.delete_all_from_source(source)
-        Publisher.delete_all_from_source(source)
-        Rating.delete_all_from_source(source)
+        source = self.db_source()
+        for klass in model_classes:
+            klass.delete_all_from_source(source)
 
     def is_data_cached(self):
         try:
@@ -146,7 +152,9 @@ class Scraper(Plugin):
                 return True
             else:
                 cache_last_modified = datetime.fromtimestamp(mtime)
-                if cache_last_modified < datetime.now() - relativedelta_units(cache_expires, self.setting('cache-expires-units')):
+                units = self.setting('cache-expires-units')
+                cache_delta = relativedelta_units(cache_expires, units)
+                if cache_last_modified < datetime.now() - cache_delta:
                     print "clearing cache since content has expired"
                     self.remove_cache_dir()
                     self.remove_stored_data()
@@ -160,7 +168,8 @@ class Scraper(Plugin):
                 raise
 
     def is_data_stored(self):
-        return False
+        source = self.db_source()
+        return any(klass.exist_records_from_source(source) for klass in model_classes)
 
     def reset_work_dir(self):
         """
@@ -181,6 +190,9 @@ class Scraper(Plugin):
         Working from the local cache, process data & add to db.
         """
         raise NotImplementedError()
+
+class ArticleScraperException(Exception):
+    pass
 
 class ArticleScraper(Scraper):
     """
@@ -295,11 +307,12 @@ class ArticleScraper(Scraper):
                 try:
                     article_list = self.process_period(start_date, end_date)
                     lists.append(article_list)
-                except Exception:
-                    print "An error has occurred while processing period %s, cleaning up DB so you can try again later" % start_date
-                    self.purge_period(start_date)
-                    assert not self.is_period_stored(start_date)
+                except Exception as e:
+#                    print "An error has occurred while processing period %s, cleaning up DB so you can try again later" % start_date
+#                    self.purge_period(start_date)
+#                    assert not self.is_period_stored(start_date)
                     raise
+                    raise ArticleScraperException(str(e))
             assert self.is_period_stored(start_date)
 
         return lists
@@ -324,13 +337,13 @@ class JournalScraper(Scraper):
             self.print_progress("Modified existing journal: %s" % journal)
 
         if journal_list is not None and journal is not None:
-            journal_list.add_journal(journal, self.safe_setting('source', self.alias))
+            journal_list.add_journal(journal, self.safe_setting('source', self.db_source()))
 
         return journal
 
     def create_new_journal(self, issn, args):
         args['issn'] = issn
-        args['source'] = self.alias
+        args['source'] = self.db_source()
         return Journal.create(**args)
 
     def modify_existing_journal(self, journal, issn, args):
