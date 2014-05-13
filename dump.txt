@@ -1,0 +1,6 @@
+Publisher
+id	name	source
+1	foo	demo
+2	bar	demo
+3	baz	demo
+

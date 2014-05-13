@@ -2,13 +2,6 @@
     "Article": {
         "date_published": {
             "default": null, 
-            "field_attributes": {
-                "formats": [
-                    "%Y-%m-%d", 
-                    "%Y-%m-%d %H:%M:%S", 
-                    "%Y-%m-%d %H:%M:%S.%f"
-                ]
-            }, 
             "help": "Date on which article was published.", 
             "index": false, 
             "name": "date_published", 
@@ -18,9 +11,6 @@
         }, 
         "doi": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Digital object identifier for article.", 
             "index": false, 
             "name": "doi", 
@@ -28,19 +18,8 @@
             "unique": false, 
             "verbose_name": "Doi"
         }, 
-        "free_to_read": {
-            "default": null, 
-            "field_attributes": {}, 
-            "help": "Is article 'free to read' as per CrossRef?", 
-            "index": false, 
-            "name": "free_to_read", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Free To Read"
-        }, 
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
@@ -50,7 +29,6 @@
         }, 
         "journal": {
             "default": null, 
-            "field_attributes": {}, 
             "help": "Journal object for journal in which article was published.", 
             "index": false, 
             "name": "journal", 
@@ -58,82 +36,18 @@
             "unique": false, 
             "verbose_name": "Journal"
         }, 
-        "license": {
+        "period": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": null, 
+            "help": "Name of date-based period in which this article was scraped.", 
             "index": false, 
-            "name": "license", 
-            "null": true, 
+            "name": "period", 
+            "null": false, 
             "unique": false, 
-            "verbose_name": "License"
-        }, 
-        "nihm_id": {
-            "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": null, 
-            "index": false, 
-            "name": "nihm_id", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Nihm Id"
-        }, 
-        "open_access": {
-            "default": null, 
-            "field_attributes": {}, 
-            "help": null, 
-            "index": false, 
-            "name": "open_access", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Open Access"
-        }, 
-        "open_access_source": {
-            "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": null, 
-            "index": false, 
-            "name": "open_access_source", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Open Access Source"
-        }, 
-        "pmc_id": {
-            "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": null, 
-            "index": false, 
-            "name": "pmc_id", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Pmc Id"
-        }, 
-        "pubmed_id": {
-            "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": null, 
-            "index": false, 
-            "name": "pubmed_id", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Pubmed Id"
+            "verbose_name": "Period"
         }, 
         "source": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": null, 
+            "help": "Which scraper populated this information?", 
             "index": false, 
             "name": "source", 
             "null": false, 
@@ -142,9 +56,6 @@
         }, 
         "title": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Title of article.", 
             "index": false, 
             "name": "title", 
@@ -154,10 +65,7 @@
         }, 
         "url": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": "Web page for article information (and maybe content).", 
+            "help": "Web page for article information.", 
             "index": false, 
             "name": "url", 
             "null": true, 
@@ -168,7 +76,6 @@
     "ArticleList": {
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
@@ -178,9 +85,6 @@
         }, 
         "name": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "name", 
@@ -190,21 +94,26 @@
         }, 
         "orcid": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "orcid", 
             "null": true, 
             "unique": false, 
             "verbose_name": "Orcid"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
         }
     }, 
     "ArticleListMembership": {
         "article": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "article", 
@@ -214,7 +123,6 @@
         }, 
         "article_list": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "article_list", 
@@ -224,21 +132,145 @@
         }, 
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
             "null": false, 
             "unique": false, 
             "verbose_name": "Id"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }
+    }, 
+    "Instance": {
+        "article": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "article", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Article"
+        }, 
+        "download_url": {
+            "default": null, 
+            "help": "URL for directly downloading the article. May be tested for status and file size.", 
+            "index": false, 
+            "name": "download_url", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Download Url"
+        }, 
+        "end_date": {
+            "default": null, 
+            "help": "This rating's properties are in effect up to this date.", 
+            "index": false, 
+            "name": "end_date", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "End Date"
+        }, 
+        "expected_file_hash": {
+            "default": null, 
+            "help": "Expected file checksum if article is downloadable.", 
+            "index": false, 
+            "name": "expected_file_hash", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Expected File Hash"
+        }, 
+        "expected_file_size": {
+            "default": null, 
+            "help": "Expected file size if article is downloadable.", 
+            "index": false, 
+            "name": "expected_file_size", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Expected File Size"
+        }, 
+        "free_to_read": {
+            "default": null, 
+            "help": "Are journal contents available online for free?", 
+            "index": false, 
+            "name": "free_to_read", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Free To Read"
+        }, 
+        "id": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "id", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Id"
+        }, 
+        "identifier": {
+            "default": null, 
+            "help": "Identifier within the repository.", 
+            "index": false, 
+            "name": "identifier", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Identifier"
+        }, 
+        "info_url": {
+            "default": null, 
+            "help": "For convenience, URL of an info page for the article.", 
+            "index": false, 
+            "name": "info_url", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Info Url"
+        }, 
+        "license": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "license", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "License"
+        }, 
+        "repository": {
+            "default": null, 
+            "help": "Repository in which this instance is deposited or described.", 
+            "index": false, 
+            "name": "repository", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Repository"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }, 
+        "start_date": {
+            "default": null, 
+            "help": "This rating's properties are in effect commencing from this date.", 
+            "index": false, 
+            "name": "start_date", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Start Date"
         }
     }, 
     "Journal": {
         "country": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Country of publication for this journal.", 
             "index": false, 
             "name": "country", 
@@ -248,21 +280,15 @@
         }, 
         "doi": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "DOI for journal.", 
             "index": false, 
             "name": "doi", 
             "null": true, 
-            "unique": true, 
+            "unique": false, 
             "verbose_name": "Doi"
         }, 
         "eissn": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Electronic ISSN (EISSN) of journal.", 
             "index": false, 
             "name": "eissn", 
@@ -272,7 +298,6 @@
         }, 
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
@@ -282,9 +307,6 @@
         }, 
         "iso_abbreviation": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "iso_abbreviation", 
@@ -294,9 +316,6 @@
         }, 
         "issn": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "ISSN of journal.", 
             "index": false, 
             "name": "issn", 
@@ -306,9 +325,6 @@
         }, 
         "issn_linking": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "issn_linking", 
@@ -318,9 +334,6 @@
         }, 
         "language": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Language(s) in which journal is published.", 
             "index": false, 
             "name": "language", 
@@ -328,23 +341,8 @@
             "unique": false, 
             "verbose_name": "Language"
         }, 
-        "license": {
-            "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": "Open source (or other) license on content.", 
-            "index": false, 
-            "name": "license", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "License"
-        }, 
         "medline_ta": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "medline_ta", 
@@ -354,9 +352,6 @@
         }, 
         "nlm_unique_id": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "nlm_unique_id", 
@@ -364,31 +359,8 @@
             "unique": false, 
             "verbose_name": "Nlm Unique Id"
         }, 
-        "open_access": {
-            "default": null, 
-            "field_attributes": {}, 
-            "help": "Is this journal available as an open access journal?", 
-            "index": false, 
-            "name": "open_access", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Open Access"
-        }, 
-        "open_access_source": {
-            "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": "Source of information (scraper alias) for open_access value.", 
-            "index": false, 
-            "name": "open_access_source", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Open Access Source"
-        }, 
         "publisher": {
             "default": null, 
-            "field_attributes": {}, 
             "help": "Publisher object corresponding to journal publisher.", 
             "index": false, 
             "name": "publisher", 
@@ -398,31 +370,15 @@
         }, 
         "source": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
-            "help": "Which scraper populated basic journal information?", 
+            "help": "Which scraper populated this information?", 
             "index": false, 
             "name": "source", 
             "null": false, 
             "unique": false, 
             "verbose_name": "Source"
         }, 
-        "start_year": {
-            "default": null, 
-            "field_attributes": {}, 
-            "help": "Whatever DOAJ means by 'start year'.", 
-            "index": false, 
-            "name": "start_year", 
-            "null": true, 
-            "unique": false, 
-            "verbose_name": "Start Year"
-        }, 
         "subject": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Subject area which this journal deals with.", 
             "index": false, 
             "name": "subject", 
@@ -432,9 +388,6 @@
         }, 
         "title": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Name of journal.", 
             "index": true, 
             "name": "title", 
@@ -444,9 +397,6 @@
         }, 
         "url": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": "Website of journal.", 
             "index": false, 
             "name": "url", 
@@ -458,7 +408,6 @@
     "JournalList": {
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
@@ -468,21 +417,26 @@
         }, 
         "name": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "name", 
             "null": false, 
             "unique": false, 
             "verbose_name": "Name"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
         }
     }, 
     "JournalListMembership": {
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
@@ -492,7 +446,6 @@
         }, 
         "journal": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "journal", 
@@ -502,19 +455,167 @@
         }, 
         "journal_list": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "journal_list", 
             "null": false, 
             "unique": false, 
             "verbose_name": "Journal List"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }
+    }, 
+    "License": {
+        "alias": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "alias", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Alias"
+        }, 
+        "id": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "id", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Id"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }, 
+        "title": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "title", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Title"
+        }, 
+        "url": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "url", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Url"
+        }
+    }, 
+    "LicenseAlias": {
+        "alias": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "alias", 
+            "null": false, 
+            "unique": true, 
+            "verbose_name": "Alias"
+        }, 
+        "id": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "id", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Id"
+        }, 
+        "license": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "license", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "License"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }
+    }, 
+    "OpenMetaCommon": {
+        "end_date": {
+            "default": null, 
+            "help": "This rating's properties are in effect up to this date.", 
+            "index": false, 
+            "name": "end_date", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "End Date"
+        }, 
+        "free_to_read": {
+            "default": null, 
+            "help": "Are journal contents available online for free?", 
+            "index": false, 
+            "name": "free_to_read", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Free To Read"
+        }, 
+        "id": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "id", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Id"
+        }, 
+        "license": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "license", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "License"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }, 
+        "start_date": {
+            "default": null, 
+            "help": "This rating's properties are in effect commencing from this date.", 
+            "index": false, 
+            "name": "start_date", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Start Date"
         }
     }, 
     "Publisher": {
         "id": {
             "default": null, 
-            "field_attributes": {}, 
             "help": null, 
             "index": false, 
             "name": "id", 
@@ -524,15 +625,124 @@
         }, 
         "name": {
             "default": null, 
-            "field_attributes": {
-                "max_length": 255
-            }, 
             "help": null, 
             "index": false, 
             "name": "name", 
             "null": false, 
             "unique": false, 
             "verbose_name": "Name"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }
+    }, 
+    "Rating": {
+        "end_date": {
+            "default": null, 
+            "help": "This rating's properties are in effect up to this date.", 
+            "index": false, 
+            "name": "end_date", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "End Date"
+        }, 
+        "free_to_read": {
+            "default": null, 
+            "help": "Are journal contents available online for free?", 
+            "index": false, 
+            "name": "free_to_read", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Free To Read"
+        }, 
+        "id": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "id", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Id"
+        }, 
+        "journal": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "journal", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Journal"
+        }, 
+        "license": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "license", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "License"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
+        }, 
+        "start_date": {
+            "default": null, 
+            "help": "This rating's properties are in effect commencing from this date.", 
+            "index": false, 
+            "name": "start_date", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Start Date"
+        }
+    }, 
+    "Repository": {
+        "id": {
+            "default": null, 
+            "help": null, 
+            "index": false, 
+            "name": "id", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Id"
+        }, 
+        "info_url": {
+            "default": null, 
+            "help": "For convenience, URL of info page for the repository.", 
+            "index": false, 
+            "name": "info_url", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Info Url"
+        }, 
+        "name": {
+            "default": null, 
+            "help": "Descriptive name for the repository.", 
+            "index": false, 
+            "name": "name", 
+            "null": true, 
+            "unique": false, 
+            "verbose_name": "Name"
+        }, 
+        "source": {
+            "default": null, 
+            "help": "Which scraper populated this information?", 
+            "index": false, 
+            "name": "source", 
+            "null": false, 
+            "unique": false, 
+            "verbose_name": "Source"
         }
     }
 }

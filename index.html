@@ -481,10 +481,16 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li><a href="#_article">Article</a></li>
 <li><a href="#_articlelist">ArticleList</a></li>
 <li><a href="#_articlelistmembership">ArticleListMembership</a></li>
+<li><a href="#_instance">Instance</a></li>
 <li><a href="#_journal">Journal</a></li>
 <li><a href="#_journallist">JournalList</a></li>
 <li><a href="#_journallistmembership">JournalListMembership</a></li>
+<li><a href="#_license">License</a></li>
+<li><a href="#_licensealias">LicenseAlias</a></li>
+<li><a href="#_openmetacommon">OpenMetaCommon</a></li>
 <li><a href="#_publisher">Publisher</a></li>
+<li><a href="#_rating">Rating</a></li>
+<li><a href="#_repository">Repository</a></li>
 </ul>
 </li>
 <li><a href="#_scraper_design">Scraper Design</a></li>
@@ -584,10 +590,15 @@ tools. It is written in Python.</p>
 
 <span class="tok-go">Settings:</span>
 
-<span class="tok-go">     cache: Location to copy cache files from. (default value: None)</span>
+<span class="tok-go">     cache-expires: Number of units after which to expire cache files. (default value: None)</span>
+<span class="tok-go">     cache-expires-units: Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds (default value: days)</span>
 <span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: None)</span>
+<span class="tok-go">     end-period: Period (month) in yyyy-mm format. (default value: None)</span>
+<span class="tok-go">     no-hash-settings: Settings to exclude from hash calculations. (default value: [&#39;start-period&#39;, &#39;end-period&#39;])</span>
 <span class="tok-go">     orcid: ORCID of author to process, or a list of ORCIDS. (default value: None)</span>
 <span class="tok-go">     orcid-data-file: File to save data under. (default value: orcid.pickle)</span>
+<span class="tok-go">     period: Custom setting for article &#39;period&#39;. (default value: manual)</span>
+<span class="tok-go">     start-period: Period (month) in yyyy-mm format. (default value: None)</span>
 </code></pre>
 </div>
 </div>
@@ -609,9 +620,12 @@ tools. It is written in Python.</p>
 <span class="tok-go">Settings:</span>
 
 <span class="tok-go">     base-url: Base url of OAG API (default value: http://oag.cottagelabs.com/lookup/)</span>
-<span class="tok-go">     cache: Location to copy cache files from. (default value: None)</span>
+<span class="tok-go">     cache-expires: Number of units after which to expire cache files. (default value: None)</span>
+<span class="tok-go">     cache-expires-units: Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds (default value: days)</span>
 <span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: None)</span>
 <span class="tok-go">     max-items: Maximum number of items in a single API request. (default value: 1000)</span>
+<span class="tok-go">     no-hash-settings: Settings to exclude from hash calculations. (default value: [])</span>
+<span class="tok-go">     repository-name: Name of OAG repository. (default value: Open Article Gauge)</span>
 </code></pre>
 </div>
 </div>
@@ -622,16 +636,20 @@ tools. It is written in Python.</p>
 <div class="content">
 <pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus run --config example-orcid.yaml --reports <span class="tok-s2">&quot;personal-openness&quot;</span>
 <span class="tok-go">running orcid scraper</span>
-<span class="tok-go">.oacensus/cache/6eae9a31c606a0d8477db2ea78f40475</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">running oag scraper</span>
-<span class="tok-go">.oacensus/cache/a584348f64b47e9de802565b39119e47</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">scraping completed in 0:00:02.218379</span>
-<span class="tok-go">running report personal-openness</span>
-<span class="tok-go">reports completed in 0:00:00.988647</span>
+<span class="tok-go">Traceback (most recent call last):</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/modargs/args.py&quot;, line 286, in command_module</span>
+<span class="tok-go">    function(**options)</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/commands.py&quot;, line 191, in run_command</span>
+<span class="tok-go">    scraper.run()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 105, in run</span>
+<span class="tok-go">    return self.process()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scrapers/orcids.py&quot;, line 45, in process</span>
+<span class="tok-go">    for pub in response.publications:</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/orcid/rest.py&quot;, line 107, in publications</span>
+<span class="tok-go">    self._load_works()</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/orcid/rest.py&quot;, line 101, in _load_works</span>
+<span class="tok-go">    + &#39;/orcid-works&#39;, headers = BASE_HEADERS)</span>
+<span class="tok-go">TypeError: cannot concatenate &#39;str&#39; and &#39;NoneType&#39; objects</span>
 </code></pre>
 </div>
 </div>
@@ -801,12 +819,17 @@ after you have executed the <code>run</code> command:</p>
 <pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus list
 <span class="tok-go">Scrapers:</span>
 
+<span class="tok-go">   articlescraper</span>
 <span class="tok-go">   biomed</span>
 <span class="tok-go">   crossref</span>
-<span class="tok-go">   crossreftitles</span>
+<span class="tok-go">   crossrefjournals</span>
+<span class="tok-go">   csvarticles</span>
+<span class="tok-go">   demo</span>
 <span class="tok-go">   doaj</span>
 <span class="tok-go">   doilist</span>
 <span class="tok-go">   elsevier</span>
+<span class="tok-go">   gtr</span>
+<span class="tok-go">   licenses</span>
 <span class="tok-go">   oag</span>
 <span class="tok-go">   oai</span>
 <span class="tok-go">   orcid</span>
@@ -817,7 +840,9 @@ after you have executed the <code>run</code> command:</p>
 <span class="tok-go">Reports:</span>
 
 <span class="tok-go">   excel</span>
+<span class="tok-go">   institution</span>
 <span class="tok-go">   personal-openness</span>
+<span class="tok-go">   textdump</span>
 </code></pre>
 </div>
 </div>
@@ -839,9 +864,12 @@ after you have executed the <code>run</code> command:</p>
 <span class="tok-go">Settings:</span>
 
 <span class="tok-go">     base-url: Base url of OAG API (default value: http://oag.cottagelabs.com/lookup/)</span>
-<span class="tok-go">     cache: Location to copy cache files from. (default value: None)</span>
+<span class="tok-go">     cache-expires: Number of units after which to expire cache files. (default value: None)</span>
+<span class="tok-go">     cache-expires-units: Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds (default value: days)</span>
 <span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: None)</span>
 <span class="tok-go">     max-items: Maximum number of items in a single API request. (default value: 1000)</span>
+<span class="tok-go">     no-hash-settings: Settings to exclude from hash calculations. (default value: [])</span>
+<span class="tok-go">     repository-name: Name of OAG repository. (default value: Open Article Gauge)</span>
 </code></pre>
 </div>
 </div>
@@ -1009,16 +1037,6 @@ empty list meaning that no data will be updated.</p>
 <p>This scraper updates open access-related attributes for an article using data
 retrieved from the OAG API.</p>
 </div>
-<div class="listingblock">
-<div class="content">
-<pre class="pygments highlight"><code class="python language-python">    <span class="tok-k">def</span> <span class="tok-nf">update_article_with_license_info</span><span class="tok-p">(</span><span class="tok-bp">self</span><span class="tok-p">,</span> <span class="tok-n">article</span><span class="tok-p">,</span> <span class="tok-n">license</span><span class="tok-p">):</span>
-        <span class="tok-n">article</span><span class="tok-o">.</span><span class="tok-n">open_access</span> <span class="tok-o">=</span> <span class="tok-n">license</span><span class="tok-p">[</span><span class="tok-mi">0</span><span class="tok-p">][</span><span class="tok-s">&#39;open_access&#39;</span><span class="tok-p">]</span>
-        <span class="tok-n">article</span><span class="tok-o">.</span><span class="tok-n">open_access_source</span> <span class="tok-o">=</span> <span class="tok-bp">self</span><span class="tok-o">.</span><span class="tok-n">alias</span>
-        <span class="tok-n">article</span><span class="tok-o">.</span><span class="tok-n">license</span> <span class="tok-o">=</span> <span class="tok-n">license</span><span class="tok-p">[</span><span class="tok-mi">0</span><span class="tok-p">][</span><span class="tok-s">&#39;title&#39;</span><span class="tok-p">]</span><span class="tok-o">.</span><span class="tok-n">strip</span><span class="tok-p">()</span>
-        <span class="tok-n">article</span><span class="tok-o">.</span><span class="tok-n">save</span><span class="tok-p">()</span>
-</code></pre>
-</div>
-</div>
 </div>
 <div class="sect3">
 <h4 id="_crossref">Crossref</h4>
@@ -1071,40 +1089,22 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <p><strong>doi</strong> <em>Digital object identifier for article.</em></p>
 </li>
 <li>
-<p><strong>free_to_read</strong> <em>Is article <em>free to read</em> as per CrossRef?</em></p>
-</li>
-<li>
 <p><strong>id</strong></p>
 </li>
 <li>
 <p><strong>journal</strong> <em>Journal object for journal in which article was published.</em></p>
 </li>
 <li>
-<p><strong>license</strong></p>
+<p><strong>period</strong> <em>Name of date-based period in which this article was scraped.</em></p>
 </li>
 <li>
-<p><strong>nihm_id</strong></p>
-</li>
-<li>
-<p><strong>open_access</strong></p>
-</li>
-<li>
-<p><strong>open_access_source</strong></p>
-</li>
-<li>
-<p><strong>pmc_id</strong></p>
-</li>
-<li>
-<p><strong>pubmed_id</strong></p>
-</li>
-<li>
-<p><strong>source</strong></p>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
 </li>
 <li>
 <p><strong>title</strong> <em>Title of article.</em></p>
 </li>
 <li>
-<p><strong>url</strong> <em>Web page for article information (and maybe content).</em></p>
+<p><strong>url</strong> <em>Web page for article information.</em></p>
 </li>
 </ul>
 </div>
@@ -1125,6 +1125,9 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <li>
 <p><strong>orcid</strong></p>
 </li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
 </ul>
 </div>
 </div>
@@ -1144,6 +1147,58 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <li>
 <p><strong>id</strong></p>
 </li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_instance">Instance</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>article</strong></p>
+</li>
+<li>
+<p><strong>download_url</strong> <em>URL for directly downloading the article. May be tested for status and file size.</em></p>
+</li>
+<li>
+<p><strong>end_date</strong> <em>This rating&#8217;s properties are in effect up to this date.</em></p>
+</li>
+<li>
+<p><strong>expected_file_hash</strong> <em>Expected file checksum if article is downloadable.</em></p>
+</li>
+<li>
+<p><strong>expected_file_size</strong> <em>Expected file size if article is downloadable.</em></p>
+</li>
+<li>
+<p><strong>free_to_read</strong> <em>Are journal contents available online for free?</em></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>identifier</strong> <em>Identifier within the repository.</em></p>
+</li>
+<li>
+<p><strong>info_url</strong> <em>For convenience, URL of an info page for the article.</em></p>
+</li>
+<li>
+<p><strong>license</strong></p>
+</li>
+<li>
+<p><strong>repository</strong> <em>Repository in which this instance is deposited or described.</em></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+<li>
+<p><strong>start_date</strong> <em>This rating&#8217;s properties are in effect commencing from this date.</em></p>
+</li>
 </ul>
 </div>
 </div>
@@ -1158,7 +1213,7 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <p><strong>country</strong> <em>Country of publication for this journal.</em></p>
 </li>
 <li>
-<p><strong>doi</strong> <em>DOI for journal.</em> [unique]</p>
+<p><strong>doi</strong> <em>DOI for journal.</em></p>
 </li>
 <li>
 <p><strong>eissn</strong> <em>Electronic ISSN (EISSN) of journal.</em></p>
@@ -1179,28 +1234,16 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <p><strong>language</strong> <em>Language(s) in which journal is published.</em></p>
 </li>
 <li>
-<p><strong>license</strong> <em>Open source (or other) license on content.</em></p>
-</li>
-<li>
 <p><strong>medline_ta</strong></p>
 </li>
 <li>
 <p><strong>nlm_unique_id</strong></p>
 </li>
 <li>
-<p><strong>open_access</strong> <em>Is this journal available as an open access journal?</em></p>
-</li>
-<li>
-<p><strong>open_access_source</strong> <em>Source of information (scraper alias) for open_access value.</em></p>
-</li>
-<li>
 <p><strong>publisher</strong> <em>Publisher object corresponding to journal publisher.</em></p>
 </li>
 <li>
-<p><strong>source</strong> <em>Which scraper populated basic journal information?</em></p>
-</li>
-<li>
-<p><strong>start_year</strong> <em>Whatever DOAJ means by <em>start year</em>.</em></p>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
 </li>
 <li>
 <p><strong>subject</strong> <em>Subject area which this journal deals with.</em></p>
@@ -1227,6 +1270,9 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <li>
 <p><strong>name</strong></p>
 </li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
 </ul>
 </div>
 </div>
@@ -1246,6 +1292,84 @@ plugins module</a> so that Cashew will register the plugin.</p>
 <li>
 <p><strong>journal_list</strong></p>
 </li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_license">License</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>alias</strong></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+<li>
+<p><strong>title</strong></p>
+</li>
+<li>
+<p><strong>url</strong></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_licensealias">LicenseAlias</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>alias</strong>  [unique]</p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>license</strong></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_openmetacommon">OpenMetaCommon</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>end_date</strong> <em>This rating&#8217;s properties are in effect up to this date.</em></p>
+</li>
+<li>
+<p><strong>free_to_read</strong> <em>Are journal contents available online for free?</em></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>license</strong></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+<li>
+<p><strong>start_date</strong> <em>This rating&#8217;s properties are in effect commencing from this date.</em></p>
+</li>
 </ul>
 </div>
 </div>
@@ -1261,6 +1385,62 @@ plugins module</a> so that Cashew will register the plugin.</p>
 </li>
 <li>
 <p><strong>name</strong></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_rating">Rating</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>end_date</strong> <em>This rating&#8217;s properties are in effect up to this date.</em></p>
+</li>
+<li>
+<p><strong>free_to_read</strong> <em>Are journal contents available online for free?</em></p>
+</li>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>journal</strong></p>
+</li>
+<li>
+<p><strong>license</strong></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
+</li>
+<li>
+<p><strong>start_date</strong> <em>This rating&#8217;s properties are in effect commencing from this date.</em></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_repository">Repository</h4>
+<div class="paragraph">
+<p>Fields:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>id</strong></p>
+</li>
+<li>
+<p><strong>info_url</strong> <em>For convenience, URL of info page for the repository.</em></p>
+</li>
+<li>
+<p><strong>name</strong> <em>Descriptive name for the repository.</em></p>
+</li>
+<li>
+<p><strong>source</strong> <em>Which scraper populated this information?</em></p>
 </li>
 </ul>
 </div>
@@ -1329,14 +1509,19 @@ the <code>pubmed</code> scraper:</p>
 <span class="tok-go">Settings:</span>
 
 <span class="tok-go">     base-url: Base url of API. (default value: http://eutils.ncbi.nlm.nih.gov/entrez/eutils/)</span>
-<span class="tok-go">     cache: Location to copy cache files from. (default value: None)</span>
+<span class="tok-go">     cache-expires: Number of units after which to expire cache files. (default value: None)</span>
+<span class="tok-go">     cache-expires-units: Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds (default value: days)</span>
+<span class="tok-go">     datetype: Type of date for period filtering (default value: pdat)</span>
 <span class="tok-go">     delay: Time in seconds to delay between API requests. (default value: 1)</span>
 <span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: None)</span>
+<span class="tok-go">     end-period: Period (month) in yyyy-mm format. (default value: None)</span>
 <span class="tok-go">     filepattern: Names of files which hold data in cache. (default value: data_%04d.xml)</span>
 <span class="tok-go">     initial-ret-max: Maximum number of entries to return in the initial query. (default value: 5)</span>
 <span class="tok-go">     ncbi-db: Name of NCBI database to query. (default value: pubmed)</span>
+<span class="tok-go">     no-hash-settings: Settings to exclude from hash calculations. (default value: [&#39;start-period&#39;, &#39;end-period&#39;])</span>
 <span class="tok-go">     ret-max: Maximum number of entries to return in any single query. (default value: 10000)</span>
 <span class="tok-go">     search: Search query to include. (default value: None)</span>
+<span class="tok-go">     start-period: Period (month) in yyyy-mm format. (default value: None)</span>
 </code></pre>
 </div>
 </div>
@@ -1377,9 +1562,12 @@ the <code>pubmed</code> scraper:</p>
 <span class="tok-go">Settings:</span>
 
 <span class="tok-go">     base-url: Base url of OAG API (default value: http://oag.cottagelabs.com/lookup/)</span>
-<span class="tok-go">     cache: Location to copy cache files from. (default value: None)</span>
+<span class="tok-go">     cache-expires: Number of units after which to expire cache files. (default value: None)</span>
+<span class="tok-go">     cache-expires-units: Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds (default value: days)</span>
 <span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: None)</span>
 <span class="tok-go">     max-items: Maximum number of items in a single API request. (default value: 1000)</span>
+<span class="tok-go">     no-hash-settings: Settings to exclude from hash calculations. (default value: [])</span>
+<span class="tok-go">     repository-name: Name of OAG repository. (default value: Open Article Gauge)</span>
 </code></pre>
 </div>
 </div>
@@ -1408,19 +1596,19 @@ information about openness and license information.</p>
 
 <span class="tok-go">doaj Scraper</span>
 
-<span class="tok-go">Updates journals in the database with openness information from DOAJ.</span>
-
-<span class="tok-go">Can also optionally add new journals to the database based on DOAJ entries.</span>
+<span class="tok-go">Generates ratings for journals with openness information from DOAJ.</span>
 
 <span class="tok-go">Settings:</span>
 
-<span class="tok-go">     add-new-journals: Whether to create new Journal instances if one doesn&#39;t already exist. (default value: False)</span>
-<span class="tok-go">     cache: Location to copy cache files from. (default value: None)</span>
+<span class="tok-go">     add-new-journals: Whether to create new Journal instances if one doesn&#39;t already exist. (default value: True)</span>
+<span class="tok-go">     cache-expires: Number of units after which to expire cache files. (default value: 90)</span>
+<span class="tok-go">     cache-expires-units: Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds (default value: days)</span>
 <span class="tok-go">     csv-url: Base url for accessing DOAJ. (default value: http://www.doaj.org/csv)</span>
 <span class="tok-go">     data-file: File to save data under. (default value: doaj.csv)</span>
-<span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: None)</span>
+<span class="tok-go">     encoding: Which encoding to use. Can be &#39;chardet&#39;. (default value: utf-8)</span>
 <span class="tok-go">     limit: Limit of journals to process (for testing/dev) (default value: None)</span>
-<span class="tok-go">     update-journal-fields: Whitelist of fields which should be applied when updating an existing journal. (default value: [&#39;open-access&#39;, &#39;open-access-source&#39;, &#39;license&#39;])</span>
+<span class="tok-go">     no-hash-settings: Settings to exclude from hash calculations. (default value: [])</span>
+<span class="tok-go">     update-journal-fields: Whitelist of fields which should be applied when updating an existing journal. (default value: [])</span>
 </code></pre>
 </div>
 </div>
@@ -1440,23 +1628,28 @@ information about openness and license information.</p>
 <div class="content">
 <pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus run --config example-oxford-2012.yaml --reports excel
 <span class="tok-go">running pubmed scraper</span>
-<span class="tok-go">.oacensus/cache/ec1df7dc810c04e3d1afdbb82e3d13a6</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  there are 297 total articles matching the search</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">   &lt;ArticleList: u&#39;&lt;Article List (297 articles): pubmed search: &quot;Oxford University&quot;[affiliation] AND 2012[pdat]&gt;&#39;&gt;</span>
-<span class="tok-go">running oag scraper</span>
-<span class="tok-go">.oacensus/cache/a584348f64b47e9de802565b39119e47</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">running doaj scraper</span>
-<span class="tok-go">.oacensus/cache/ce7ba6e6e355a4017b977e998de6697f</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">scraping completed in 0:01:08.259902</span>
-<span class="tok-go">running report excel</span>
-<span class="tok-go">  database contents written to dump.xls</span>
-<span class="tok-go">reports completed in 0:00:02.723981</span>
+<span class="tok-go">Traceback (most recent call last):</span>
+<span class="tok-go">  File &quot;/usr/local/bin/oacensus&quot;, line 9, in &lt;module&gt;</span>
+<span class="tok-go">    load_entry_point(&#39;oacensus==0.1.0d&#39;, &#39;console_scripts&#39;, &#39;oacensus&#39;)()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/commands.py&quot;, line 27, in run</span>
+<span class="tok-go">    args.parse_and_run_command(sys.argv[1:], mod, default_command=default_cmd)</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/modargs/args.py&quot;, line 381, in parse_and_run_command</span>
+<span class="tok-go">    command_module(mod, command, options, cli_options=cli_options)</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/modargs/args.py&quot;, line 286, in command_module</span>
+<span class="tok-go">    function(**options)</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/commands.py&quot;, line 191, in run_command</span>
+<span class="tok-go">    scraper.run()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 97, in run</span>
+<span class="tok-go">    self.scrape()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 294, in scrape</span>
+<span class="tok-go">    for start_date, end_date in self.periods():</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 245, in periods</span>
+<span class="tok-go">    for i, start_date in enumerate(self.start_dates()):</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 228, in start_dates</span>
+<span class="tok-go">    start_month = self.parse_month(&quot;start-period&quot;)</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 215, in parse_month</span>
+<span class="tok-go">    raise Exception(&quot;%s must be provided in YYYY-MM format&quot; % param_name)</span>
+<span class="tok-go">Exception: start-period must be provided in YYYY-MM format</span>
 </code></pre>
 </div>
 </div>
@@ -1508,16 +1701,20 @@ out. It doesn&#8217;t yet exist and will take some time to reach critical mass.<
 <div class="content">
 <pre class="pygments highlight"><code class="console language-console"><span class="tok-gp">$</span> oacensus run --config example-orcid.yaml --reports <span class="tok-s2">&quot;personal-openness&quot;</span>
 <span class="tok-go">running orcid scraper</span>
-<span class="tok-go">.oacensus/cache/6eae9a31c606a0d8477db2ea78f40475</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">running oag scraper</span>
-<span class="tok-go">.oacensus/cache/a584348f64b47e9de802565b39119e47</span>
-<span class="tok-go">  calling scrape method...</span>
-<span class="tok-go">  calling process method...</span>
-<span class="tok-go">scraping completed in 0:00:02.218379</span>
-<span class="tok-go">running report personal-openness</span>
-<span class="tok-go">reports completed in 0:00:00.988647</span>
+<span class="tok-go">Traceback (most recent call last):</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/modargs/args.py&quot;, line 286, in command_module</span>
+<span class="tok-go">    function(**options)</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/commands.py&quot;, line 191, in run_command</span>
+<span class="tok-go">    scraper.run()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scraper.py&quot;, line 105, in run</span>
+<span class="tok-go">    return self.process()</span>
+<span class="tok-go">  File &quot;/home/oacensus/oacensus/oacensus/scrapers/orcids.py&quot;, line 45, in process</span>
+<span class="tok-go">    for pub in response.publications:</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/orcid/rest.py&quot;, line 107, in publications</span>
+<span class="tok-go">    self._load_works()</span>
+<span class="tok-go">  File &quot;/usr/local/lib/python2.7/dist-packages/orcid/rest.py&quot;, line 101, in _load_works</span>
+<span class="tok-go">    + &#39;/orcid-works&#39;, headers = BASE_HEADERS)</span>
+<span class="tok-go">TypeError: cannot concatenate &#39;str&#39; and &#39;NoneType&#39; objects</span>
 </code></pre>
 </div>
 </div>
@@ -1565,7 +1762,7 @@ repositories.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2013-12-30 08:03:47 EST
+Last updated 2014-05-13 19:54:08 UTC
 </div>
 </div>
 </body>
