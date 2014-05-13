@@ -9,6 +9,6 @@ env
 .dexy
 output/
 openarchives-listing.xml
-examples/*-cache
+docs/*-cache
 build
 dist

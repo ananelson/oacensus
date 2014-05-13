@@ -1,4 +1,4 @@
-examples/*.adoc|jinja|asciidoctor:
+docs/*.adoc|jinja|asciidoctor:
     - demo
     - docker/Dockerfile-cache
     - docker/Dockerfile|idio|asciisyn:
@@ -7,30 +7,30 @@ examples/*.adoc|jinja|asciidoctor:
     - .sh|idio|asciisyn:
         - idio : { ext : .txt }
         - asciisyn : { lexer : bash }
-    - examples/models_info.py|py:
+    - docs/models_info.py|py:
         - py : { add-new-files: ['.json'] }
-    - examples/example1.sh|idio|shint|asciisyn:
+    - docs/example1.sh|idio|shint|asciisyn:
         - shint: {
             timeout: 1000,
             add-new-files: [".xls"]
         }
-        - examples/example-oxford-2012.yaml
-    - examples/example2.sh|idio|shint|asciisyn:
+        - docs/example-oxford-2012.yaml
+    - docs/example2.sh|idio|shint|asciisyn:
         - shint: {
             timeout: 1000,
             add-new-files: [".html", ".png"]
         }
-        - examples/example-orcid.yaml
-    - examples/cli.sh|idio|shint|asciisyn
-    - examples/*.yaml|idio|asciisyn:
+        - docs/example-orcid.yaml
+    - docs/cli.sh|idio|shint|asciisyn
+    - docs/*.yaml|idio|asciisyn:
         - idio: { ext : '.txt' }
-    - examples/*.yaml|asciisyn
+    - docs/*.yaml|asciisyn
     - oacensus/*.py:
         - output: False
     - oacensus/*.py|pydoc
     - tests/*.py|pydoc
 
 demo:
-    - examples/run-demo.sh|sh:
+    - docs/run-demo.sh|sh:
         - sh: { add-new-files : True }
-        - examples/test-demo.yaml
+        - docs/test-demo.yaml
