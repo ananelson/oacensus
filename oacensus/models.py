@@ -3,6 +3,9 @@ from oacensus.db import db
 
 class ModelBase(Model):
     source = CharField(help_text="Which scraper populated this information?")
+    log = CharField(help_text="Messages should indicate all sources which touched this record.")
+
+    # TODO enforce log messages on updates
 
     def truncate_title(self, length=40):
         title = self.title
@@ -30,7 +33,6 @@ class ModelBase(Model):
 
     @classmethod
     def exist_records_from_source(klass, source):
-        count = klass.count_from_source(source)
         return klass.count_from_source(source) > 0
 
     @classmethod
@@ -42,10 +44,10 @@ class ModelBase(Model):
             return klass.create(**args)
 
     @classmethod
-    def update_or_create_by_name(cls, args):
+    def update_or_create_by_name(klass, args):
         name = args['name']
         try:
-            item = cls.get(cls.name == name)
+            item = klass.get(klass.name == name)
             for k, v in args.iteritems():
                 if k != 'source':
                     setattr(item, k, v)
@@ -63,10 +65,10 @@ class ModelBase(Model):
             return klass.create(**args)
 
     @classmethod
-    def update_or_create_by_title(cls, args):
+    def update_or_create_by_title(klass, args):
         title = args['title']
         try:
-            item = cls.get(cls.title == title)
+            item = klass.get(klass.title == title)
             for k, v in args.iteritems():
                 if k != 'source':
                     setattr(item, k, v)
@@ -144,10 +146,10 @@ class Journal(ModelBase):
             return klass.create(**args)
 
     @classmethod
-    def update_or_create_by_issn(cls, args):
+    def update_or_create_by_issn(klass, args):
         issn = args['issn']
         try:
-            journal = cls.get(cls.issn == issn)
+            journal = klass.get(klass.issn == issn)
             for k, v in args.iteritems():
                 if k != 'source':
                     setattr(journal, k, v)
@@ -188,7 +190,7 @@ class Article(ModelBase):
         help_text="Journal object for journal in which article was published.")
 
     def __unicode__(self):
-        return u'{0}'.format(self.truncate_title())
+        return u'<Article {1}: {0} >'.format(self.truncate_title(), self.id)
 
     def instance_for(self, repository_name):
         """
@@ -343,6 +345,7 @@ class ArticleList(ModelBase):
         ArticleListMembership(
             article_list = self,
             source = source,
+            log = source,
             article = article
         ).save()
 

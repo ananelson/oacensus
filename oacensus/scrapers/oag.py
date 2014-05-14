@@ -26,17 +26,20 @@ class OAG(Scraper):
     def scrape(self):
         pass
 
+    def create_repository(self):
+        return Repository.create(
+                name = self.setting('repository-name'),
+                source = self.db_source(),
+                log = self.db_source())
+
     def process(self):
         articles_with_dois = Article.select().where(~(Article.doi >> None))
-        repository = Repository.create(name = self.setting('repository-name'), source=self.alias)
+        repository = self.create_repository()
 
         api_url = self.setting('base-url')
         max_items = self.setting('max-items')
         n_articles = articles_with_dois.count()
         n_batches = n_articles/max_items+1
-
-        for article in articles_with_dois:
-            print article
 
         for i in range(n_batches):
             self.print_progress("Processing query number %s of %s" % (i, n_batches))
@@ -59,10 +62,9 @@ class OAG(Scraper):
                 else:
                     license = None
 
-                # TODO can we say anything about free-to-read?
-
                 Instance.create(
                         article=article,
                         repository=repository,
                         license=license,
-                        source=self.alias)
+                        source=self.db_source(),
+                        log=self.db_source())

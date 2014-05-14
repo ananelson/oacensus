@@ -1,10 +1,13 @@
 from dateutil.relativedelta import relativedelta
 import requests
 import urlparse
+import os
 
 nihm_name = "National Institutes of Health and Medicine"
 pmc_name = "PubMed Central"
 pubmed_name = "PubMed"
+
+project_root = os.path.dirname(__file__)
 
 defaults = {
     'cachedir' : '.oacensus/cache/',

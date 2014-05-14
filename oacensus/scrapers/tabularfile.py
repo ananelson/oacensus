@@ -9,9 +9,10 @@ import urllib
 
 class TabularFile(ArticleScraper):
     """
-    Base class for scrapers which know how to parse files containing tabular
-    data, such as CSV or Excel.
+    Base class for scrapers which parse tabular data files.
     """
+    aliases = ['tabulararticles']
+
     _settings = {
             'location' : ("Path or URL for file containing article data.",  None),
             "data-file" : ("Name of cache file.", "work.txt"),
@@ -35,7 +36,10 @@ class TabularFile(ArticleScraper):
             urllib.urlretrieve(location, work_file)
 
     def create_article_list(self):
-        return ArticleList.create(name=self.setting('list-name'), source = self.db_source())
+        return ArticleList.create(
+                name=self.setting('list-name'),
+                source = self.db_source(),
+                log = self.db_source())
 
     def create_article_for_info(self, info):
         """
@@ -45,6 +49,9 @@ class TabularFile(ArticleScraper):
         info['source'] = self.db_source()
         info['journal.source'] = self.db_source()
         info['publisher.source'] = self.db_source()
+        info['log'] = self.db_source()
+        info['journal.log'] = self.db_source()
+        info['publisher.log'] = self.db_source()
 
         article_args = dict((k, v) for k, v in info.iteritems() if not "." in k)
         journal_args = dict((k.replace("journal.", ""), v) for k, v in info.iteritems() if k.startswith("journal."))
@@ -55,15 +62,22 @@ class TabularFile(ArticleScraper):
         else:
             publisher = None
 
+        journal_args['publisher'] = publisher
+
         if journal_args.has_key('issn'):
             if self.setting('update-journal'):
                 journal = Journal.find_or_create_by_issn(journal_args)
             else:
                 journal = Journal.update_or_create_by_issn(journal_args)
+        elif journal_args.has_key('title'):
+            if self.setting('update-journal'):
+                journal = Journal.find_or_create_by_title(journal_args)
+            else:
+                journal = Journal.update_or_create_by_title(journal_args)
         else:
             journal = None
 
         if not article_args.has_key('period'):
             article_args['period'] = self.setting('period')
 
-        return Article.create(journal=journal, publisher=publisher, **article_args)
+        return Article.create(journal=journal, **article_args)

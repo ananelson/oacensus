@@ -47,6 +47,12 @@ class Scraper(Plugin):
         else:
             self._opts = defaults
 
+    def create_dummy_db_entry(self):
+        ArticleList.create(
+                name="Dummy Entry",
+                source=self.db_source(),
+                log="Created this dummy entry so scraper will count as 'stored'.")
+        
     def decode_encoded(self, text):
         encoding = self.setting('encoding')
         if encoding is None:
@@ -196,7 +202,7 @@ class ArticleScraperException(Exception):
 
 class ArticleScraper(Scraper):
     """
-    Scrapers which generate articles.
+    Base class for scrapers which parse articles.
     """
     aliases = ['articlescraper']
     _settings = {
@@ -308,10 +314,9 @@ class ArticleScraper(Scraper):
                     article_list = self.process_period(start_date, end_date)
                     lists.append(article_list)
                 except Exception as e:
-#                    print "An error has occurred while processing period %s, cleaning up DB so you can try again later" % start_date
-#                    self.purge_period(start_date)
-#                    assert not self.is_period_stored(start_date)
-                    raise
+                    print "An error has occurred while processing period %s, cleaning up DB so you can try again later" % start_date
+                    self.purge_period(start_date)
+                    assert not self.is_period_stored(start_date)
                     raise ArticleScraperException(str(e))
             assert self.is_period_stored(start_date)
 

@@ -100,16 +100,14 @@ def list_command():
     List the available scrapers and reports.
     """
     print "Scrapers:"
-    print ""
 
     for scraper in Scraper:
-        print "  ", scraper.alias
+        print "  ", scraper.alias, "-", scraper.setting('help').splitlines()[0]
 
     print ""
     print "Reports:"
-    print ""
     for report in Report:
-        print "  ", report.alias
+        print "  ", report.alias, "-", report.setting("help").splitlines()[0]
 
 def run_command(
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
@@ -138,12 +136,9 @@ def run_command(
     with open(config, 'r') as f:
         conf = yaml.safe_load(f.read())
 
-    if os.path.exists(dbfile):
-        print "removing old db file", dbfile
-        os.remove(dbfile)
-
     db.init(dbfile)
-    create_db_tables()
+    if not os.path.exists(dbfile):
+        create_db_tables()
 
     for item in conf:
         if isinstance(item, basestring):

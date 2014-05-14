@@ -1,4 +1,5 @@
 from oacensus.models import Article
+from oacensus.models import ArticleList
 from oacensus.models import JournalList
 from oacensus.models import Publisher
 from oacensus.scraper import JournalScraper
@@ -9,6 +10,61 @@ import json
 import os
 import requests
 import urllib
+import hashlib
+import codecs
+
+class CrossrefArticles(Scraper):
+    """
+    Uses crossref API to look up article metadata based on DOI.
+
+    Currently this method updates the canonical journal title and the
+    publication date for each article.
+    """
+    aliases = ['crossref']
+
+    _settings = {
+            'base-url' : ("Base url of crossref API", "http://search.labs.crossref.org/dois")
+            }
+
+    def article_filename(self, article):
+        return hashlib.md5(article.doi).hexdigest()
+
+    def scrape(self):
+        url = self.setting('base-url')
+        articles = Article.select().where(~(Article.doi >> None))
+        for article in articles:
+            self.print_progress("Requesting info from crossref for %s" % article)
+            response = requests.get(url, params = {'q' : article.doi})
+            fp = os.path.join(self.work_dir(), self.article_filename(article))
+            with codecs.open(fp, 'w', encoding="utf-8") as f:
+                f.write(response.text)
+
+    def process(self):
+        articles = Article.select().where(~(Article.doi >> None))
+        for article in articles:
+            fp = os.path.join(self.cache_dir(), self.article_filename(article))
+            with codecs.open(fp, 'r', encoding="utf-8") as f:
+                raw_data = f.read()
+            crossref_info = json.loads(raw_data)
+
+            if crossref_info:
+                coins = parse_crossref_coins(crossref_info[0])
+
+                if "rft.jtitle" in coins:
+                    journal_title = coins['rft.jtitle'][0]
+                    logmsg = "\nChanged journal title from '%s' to '%s' using %s."
+                    article.journal.log += logmsg % (article.journal.title, journal_title, self.db_source())
+                    article.journal.title = journal_title
+                    article.journal.save()
+
+                if "rft.date" in coins:
+                    publication_date = coins['rft.date'][0]
+                    article.publication_date = publication_date
+                    print "article pub date", article.publication_date
+                    article.log += "\nAdded publication date %s using %s." % (publication_date, self.db_source())
+                    article.save()
+        self.create_dummy_db_entry()
+
 
 class CrossrefJournals(JournalScraper):
     """
@@ -63,31 +119,3 @@ class CrossrefJournals(JournalScraper):
                 self.create_or_modify_journal(issn, args, crossref_list)
 
         return crossref_list
-
-class CrossrefArticles(Scraper):
-    """
-    Gets crossref information for all articles with DOIs in the database.
-
-    Currently this does nothing with the returned data.
-    """
-    aliases = ['crossref']
-
-    _settings = {
-            'base-url' : ("Base url of crossref API", "http://search.labs.crossref.org/dois")
-            }
-
-    def scrape(self):
-        pass
-
-    def process(self):
-        articles = Article.select().where(~(Article.doi >> None))
-        for article in articles:
-            response = requests.get(self.setting('base-url'),
-                    params = {'q' : article.doi}
-                    )
-            crossref_info = json.loads(response.text)
-
-            if crossref_info:
-                coins = parse_crossref_coins(crossref_info[0])
-                journal_title = coins['rft.jtitle'][0]
-                print "journal title", journal_title
