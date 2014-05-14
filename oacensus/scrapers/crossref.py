@@ -52,17 +52,19 @@ class CrossrefArticles(Scraper):
 
                 if "rft.jtitle" in coins:
                     journal_title = coins['rft.jtitle'][0]
-                    logmsg = "\nChanged journal title from '%s' to '%s' using %s."
-                    article.journal.log += logmsg % (article.journal.title, journal_title, self.db_source())
-                    article.journal.title = journal_title
-                    article.journal.save()
+                    if journal_title != article.journal.title:
+                        logmsg = "\nChanged journal title from '%s' to '%s' using %s."
+                        article.journal.log += logmsg % (article.journal.title, journal_title, self.db_source())
+                        article.journal.title = journal_title
+                        article.journal.save()
 
                 if "rft.date" in coins:
-                    publication_date = coins['rft.date'][0]
-                    article.publication_date = publication_date
-                    print "article pub date", article.publication_date
-                    article.log += "\nAdded publication date %s using %s." % (publication_date, self.db_source())
+                    date_published = coins['rft.date'][0]
+                    article.date_published = date_published
+                    article.log += "\nAdded date_published %s using %s." % (date_published, self.db_source())
                     article.save()
+
+        # We don't create any new records
         self.create_dummy_db_entry()
 
 

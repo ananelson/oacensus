@@ -3,6 +3,7 @@ from oacensus.db import db
 from oacensus.exceptions import ConfigFileFormatProblem
 from oacensus.exceptions import UserFeedback
 from oacensus.models import create_db_tables
+from oacensus.models import model_classes
 from oacensus.report import Report
 from oacensus.scraper import Scraper
 from oacensus.utils import defaults
@@ -109,6 +110,20 @@ def list_command():
     for report in Report:
         print "  ", report.alias, "-", report.setting("help").splitlines()[0]
 
+def purge_command(
+        dbfile=defaults['dbfile'], # Name of sqlite db file.
+        source=None # Source to purge
+        ):
+    """
+    Purges database entries for the provided alias.
+    """
+    if not os.path.exists(dbfile):
+        print "Nothing to purge, db does not exist."
+    else:
+        db.init(dbfile)
+        for klass in model_classes:
+            klass.delete_all_from_source(source)
+        
 def run_command(
         cachedir=defaults['cachedir'], # Directory to store cached scraped data.
         config=defaults['config'], # YAML file to read configuration from.

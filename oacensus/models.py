@@ -180,8 +180,8 @@ class Article(ModelBase):
         help_text="Title of article.")
     doi = CharField(null=True,
         help_text="Digital object identifier for article.")
-    date_published = DateField(null=True,
-        help_text="Date on which article was published.")
+    date_published = CharField(null=True,
+        help_text="When article was published, in YYYY(-MM(-DD)) format.")
     period = CharField(
         help_text="Name of date-based period in which this article was scraped.")
     url = CharField(null=True,
