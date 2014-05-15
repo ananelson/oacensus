@@ -43,8 +43,9 @@ RUN apt-get install -y python-scipy
 RUN apt-get install -y python-numpy
 RUN apt-get install -y python-matplotlib
 
-### "nose"
+### "python-dev-utils"
 RUN pip install nose
+RUN pip install pyflakes
 
 ### "asciidoctor"
 RUN apt-get install -y ruby2.0-dev
