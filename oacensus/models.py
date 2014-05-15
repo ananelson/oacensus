@@ -9,8 +9,6 @@ class ModelBase(Model):
     source = CharField(help_text="Which scraper populated this information?")
     log = CharField(help_text="Messages should indicate all sources which touched this record.")
 
-    # TODO enforce log messages on updates
-
     def truncate_title(self, length=40):
         title = self.title
         if len(title) < length:
@@ -226,6 +224,23 @@ class Article(ModelBase):
         """
         return self.journal.licenses() + self.instance_licenses()
 
+    def licenses_str(self):
+        s = []
+        for lic in self.journal.licenses():
+            s.append("Journal %s license: %s" % (self.journal.name, lic))
+
+        for lic in self.instance_licenses():
+            s.append("Instance license: %s" % lic)
+
+        return "\n".join(s)
+
+    def ratings_str(self):
+        s = []
+        for ins in self.instances:
+            s.append("Repository %s: %s (%s)" % (ins.repository.name, ins, ins.log))
+
+        return "\n".join(s)
+
     def license_name(self):
         licenses = self.licenses()
         if len(licenses) == 0:
@@ -234,6 +249,15 @@ class Article(ModelBase):
             return licenses[0].title
         else:
             return licenses[0].title + "..."
+
+    def license_source(self):
+        # exit at first license...
+        for rating in self.journal.ratings:
+            if rating.license:
+                return rating.source
+        for instance in self.instances:
+            if instance.license:
+                return instance.source
 
     def has_license(self):
         return len(self.licenses()) > 0
@@ -314,7 +338,12 @@ class Instance(OpenMetaCommon):
             help_text = "Expected file checksum if article is downloadable.")
 
     def __unicode__(self):
-        return u"<Instance '{0}' (id: {2}) in {1}>".format(self.article.truncate_title(), self.repository.name, self.identifier)
+        if self.license is None:
+            license_alias = "None"
+        else:
+            license_alias = self.license.alias
+
+        return u"<Instance {0} (id: {2}) in {1} license? {3} ftr? {4}>".format(self.id, self.repository.name, self.identifier, license_alias, self.free_to_read)
 
 class JournalList(ModelBase):
     name = CharField()

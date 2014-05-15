@@ -1,7 +1,7 @@
 # Load standard licenses.
 - licenses
 
-# Process xlsx file containing article info.
+# Create articles from xlsx file.
 - excelarticles: {
     location: "http://files.figshare.com/1464252/QUB_APC_payments_for_RCUK_2013_14.xlsx",
     list-name: QUB 2013-14,
@@ -15,10 +15,16 @@
         }
     }
 
-# Look up info based on DOI
+# Get publication date and standardize journal title (based on article DOI).
 - crossref
+
+# Get ISSNs based on journal titles.
+- crossrefjournals
+
+# Get openness information from OAG (based on article DOI).
 - oag
+
+# Check pubmed, get external identifiers including PMC (based on article DOI).
 - pubmed-update-repositories
 
-# Get all available journal info
-- crossrefjournals
+# TODO look up license in PMC

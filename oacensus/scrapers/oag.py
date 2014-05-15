@@ -42,7 +42,7 @@ class OAG(Scraper):
         n_batches = n_articles/max_items+1
 
         for i in range(n_batches):
-            self.print_progress("Processing query number %s of %s" % (i, n_batches))
+            self.print_progress("Processing query %s of %s" % (i+1, n_batches))
             articles = articles_with_dois.paginate(i, paginate_by=max_items)
             dois = [article.doi for article in articles]
 
@@ -50,21 +50,19 @@ class OAG(Scraper):
             oag_response = json.loads(response.text)['results']
 
             for i, article in enumerate(articles):
-                license_info = oag_response[i]
+                oag_info = oag_response[i]
 
-                if not license_info:
-                    print "  no license info returned for", article
+                if not oag_info:
+                    print "  no info returned for", article
                     continue
 
-                if license_info['license'][0]['open_access']:
-                    license_title = license_info['license'][0]['title']
-                    license = License.find_license(license_title)
-                else:
-                    license = None
-
-                Instance.create(
-                        article=article,
-                        repository=repository,
-                        license=license,
-                        source=self.db_source(),
-                        log=self.db_source())
+                for license_info in oag_info['license']:
+                    if license_info['open_access']:
+                        name = license_info['title']
+                        license = License.find_license(name)
+                        Instance.create(
+                                article=article,
+                                repository=repository,
+                                license=license,
+                                source=self.db_source(),
+                                log=license_info['provenance']['description'])

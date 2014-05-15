@@ -1,5 +1,4 @@
 from oacensus.models import Article
-from oacensus.models import License
 from oacensus.models import ModelBase
 from oacensus.report import Report
 import datetime
@@ -20,7 +19,7 @@ class OAExcel(Report):
             "sheet-name" : ("Name of worksheet.", "Openness"),
             'date-format-string' : ( "Excel style date format string.", "D-MMM-YYYY"),
             "fields" : ("Fields to include in report.", [
-                "id", "title", "doi", "journal.title", "publisher.name", "is_free_to_read", "license_name", "log"
+                "id", "title", "doi", "journal.title", "publisher.name", "is_free_to_read", "license_name", "license_source", "log", "journal.issn", "licenses_str", "ratings_str"
                 ])
             }
 
