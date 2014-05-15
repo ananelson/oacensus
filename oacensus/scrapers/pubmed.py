@@ -5,32 +5,48 @@ from oacensus.models import Repository
 from oacensus.models import Instance
 from oacensus.models import Journal
 from oacensus.scraper import ArticleScraper
+from oacensus.scraper import Scraper
 import dateutil.parser
 import os
 import requests
 import time
+from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
+
+# TODO remove these and use pubmed_external_ids
 from oacensus.utils import nihm_name, pmc_name, pubmed_name
 
-class NCBI(ArticleScraper):
+pubmed_external_ids = {
+        'pii' : None,
+        'doi' : None,
+        'nihm' : {
+            'name' : "National Institutes of Health and Medicine",
+            'free_to_read' : None
+            },
+        'pubmed' : {
+            'name' : "PubMed",
+            'free_to_read' : None
+            },
+        'pmc' : {
+            'name' : "PubMed Central",
+            'free_to_read' : True
+            }
+        }
+
+class NCBI(Scraper):
     """
     Base class for scrapers querying NCBI databases (including pubmed).
-
-    Since this has just been tested on pubmed, there may be pubmed-specific
-    stuff in here.
     """
-    aliases = []
+    aliases = ['ncbibase']
     _settings = {
             "base-url" : ("Base url of API.", "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/"),
             "ncbi-db" : ("Name of NCBI database to query.", None),
-            "search" : ("Search query to include.", None),
             "datetype" : ("Type of date for period filtering", "pdat"),
             "filepattern" : ("Names of files which hold data in cache.", "data_%04d.xml"),
             "ret-max" : ("Maximum number of entries to return in any single query.", 10000),
             "delay" : ("Time in seconds to delay between API requests.", 1),
             "initial-ret-max" : ("Maximum number of entries to return in the initial query.", 5)
         }
-
     def search_url(self):
         """
         URL for the Search API, which returns UIDs of articles matching the
@@ -44,35 +60,68 @@ class NCBI(ArticleScraper):
         """
         return "%s/efetch.fcgi" % self.setting('base-url')
 
-    def search_params(self, override_params=None):
-        universal_default_params = {
+    def search_params(self, provided_params=None):
+        """
+        Standardizes params and provides universal defaults.
+        """
+        if self.setting('ncbi-db') is None:
+            raise Exception("Must provide an NCBI database to search using the ncbi-db setting.")
+
+        params = {
                 'db' : self.setting('ncbi-db'),
                 'retMax' : self.setting('ret-max'),
                 }
 
-        universal_default_params.update(override_params)
-        return universal_default_params
+        params.update(provided_params)
+        return params
 
-    def initial_search_with_period(self, start_date, end_date):
+    def work_data_filepath(self, i, start_date=None, batch_prefix=None):
+        if batch_prefix is None:
+            filename = self.setting('filepattern') % i
+        else:
+            filename = self.setting('filepattern') % ("%s%s" % (batch_prefix, i))
+
+        if start_date is None:
+            return os.path.join(self.work_dir(), filename)
+        else:
+            return os.path.join(self.period_work_dir(start_date), filename)
+
+    def cache_data_filepath(self, i, start_date=None, batch_prefix=None):
+        if batch_prefix is None:
+            filename = self.setting('filepattern') % i
+        else:
+            filename = self.setting('filepattern') % ("%s%s" % (batch_prefix, i))
+
+        if start_date is None:
+            return os.path.join(self.cache_dir(), filename)
+        else:
+            return os.path.join(self.period_cache_dir(start_date), filename)
+
+    def initial_search(self, search_term, start_date=None, end_date=None):
         """
         Method which implements the initial search.
 
+        If start and end dates are provided, these are included in the search.
+
         Returns a count of records, a WebEnv value and a QueryKey value which
-        will be used to fetch the full results.
+        can then be used to fetch the full results.
         """
         params = {
-                'term' : self.setting('search'),
+                'term' : search_term,
                 'usehistory' : 'y',
                 'datetype' : self.setting('datetype'),
-                'mindate' : start_date.strftime("%Y/%m/%d"),
-                'maxdate' : end_date.strftime("%Y/%m/%d"), # TODO is this right?
                 'retMax' : self.setting('initial-ret-max')
                 }
 
-        result = requests.get(
-                self.search_url(),
-                params=self.search_params(params)
-                )
+        if start_date and end_date:
+            params.update({
+                'mindate' : start_date.strftime("%Y/%m/%d"),
+                'maxdate' : end_date.strftime("%Y/%m/%d") # TODO is this right?
+                })
+        elif start_date or end_date:
+            raise Exception("Both start and end date must be provided if either is.")
+
+        result = requests.get(self.search_url(), params=self.search_params(params))
 
         root = ET.fromstring(result.text)
     
@@ -84,15 +133,11 @@ class NCBI(ArticleScraper):
         web_env = root.find("WebEnv").text
         query_key = root.find("QueryKey").text
 
-        args = (count, start_date, end_date)
-        self.print_progress("  there are %s total articles matching the search between %s and %s" % args)
+        self.print_progress("  there are %s total articles matching the search" % count)
 
         return (count, web_env, query_key)
 
-    def data_filepath(self, i, start_date):
-        return os.path.join(self.period_work_dir(start_date), self.setting('filepattern') % i)
-
-    def fetch_batch(self, i, retstart, retmax, web_env, query_key, start_date):
+    def fetch_batch(self, i, retstart, retmax, web_env, query_key, start_date=None, batch_prefix=None):
         self.print_progress("waiting requested delay time...")
         time.sleep(self.setting('delay'))
         msg = "fetching values %s through %s..." % (retstart, retstart+retmax-1)
@@ -112,7 +157,7 @@ class NCBI(ArticleScraper):
                 stream=True
                 )
 
-        work_file = self.data_filepath(i, start_date)
+        work_file = self.work_data_filepath(i, start_date, batch_prefix)
         self.print_progress("saving data to %s" % work_file)
         with open(work_file, "wb") as f:
             for block in result.iter_content(1024):
@@ -120,8 +165,8 @@ class NCBI(ArticleScraper):
                     break
                 f.write(block)
 
-    def scrape_period(self, start_date, end_date):
-        count, web_env, query_key = self.initial_search_with_period(start_date, end_date)
+    def search_and_fetch(self, term, start_date = None, end_date = None):
+        count, web_env, query_key = self.initial_search(term, start_date, end_date)
 
         i = 0
         retstart = 0
@@ -134,21 +179,143 @@ class NCBI(ArticleScraper):
 
     def parse_date(self, entry):
         if entry is not None:
+            day_is_none = False
+            month_is_none = False
+
             year = entry.findtext("Year")
             month = entry.findtext("Month")
             day = entry.findtext("Day")
 
             if day is None:
+                day_is_none = True
                 day = "1"
 
             if month is None:
+                month_is_none = True
                 month = "1"
 
             if year is not None:
                 datestring = '%s %s %s' % (year, month, day)
-                return dateutil.parser.parse(datestring)
+                date = dateutil.parser.parse(datestring)
 
-class Pubmed(NCBI):
+                if month_is_none:
+                    return date.strftime("%Y")
+                elif day_is_none:
+                    return date.strftime("%Y-%m")
+                else:
+                    return date.strftime("%Y-%m-%d")
+
+    def create_repository(self, name):
+        args = {"name" : name, "source" : self.db_source(), "log" : self.db_source()}
+        return Repository.update_or_create_by_name(args, "")
+
+    def yield_soup(self, start_date=None):
+        if start_date is None:
+            cache_dir = self.cache_dir()
+        else:
+            cache_dir = self.period_cache_dir(start_date)
+
+        for filename in os.listdir(cache_dir):
+            filepath = os.path.join(cache_dir, filename)
+            with open(filepath, 'rb') as f:
+                soup = BeautifulSoup(f, "xml")
+            yield soup
+
+    # Parsing Methods (may be pubmed-specific)
+
+    def doi(self, soup):
+        return soup.find("ArticleId", IdType="doi").get_text()
+
+    def article_ids(self, soup):
+        for s in soup.ArticleIdList.find_all("ArticleId"):
+            yield (s['IdType'], s.getText())
+
+class UpdateByDOI(NCBI):
+    """
+    Search an NCBI database for information about all articles in the database by DOI.
+
+    There's no `process` method implemented since we might want to do multiple
+    things with the returned data, so subclass this for the particular parsing
+    behavior you need.
+    """
+    aliases = ['ncbi-doi']
+
+    _settings = {
+            'max-items' : ("Maximum number of DOIs in a single API request.", 100),
+            'filepattern' : 'data-%s.xml'
+            }
+
+    def scrape(self):
+        articles_with_dois = Article.select().where(~(Article.doi >> None))
+
+        max_items = self.setting('max-items')
+        n_articles = articles_with_dois.count()
+        n_batches = n_articles/max_items+1
+
+        for batch in range(n_batches):
+            articles = articles_with_dois.paginate(batch, paginate_by=max_items)
+            term = " OR ".join("%s[AID]" % article.doi for article in articles)
+
+            count, web_env, query_key = self.initial_search(term)
+
+            i = 0
+            retstart = 0
+            retmax = self.setting('ret-max')
+
+            while retstart < count:
+                self.fetch_batch(i, retstart, retmax, web_env, query_key, None, batch)
+                retstart += retmax
+                i += 1
+
+
+class UpdateExternalIdsByDOI(UpdateByDOI):
+    """
+    Create instances based on external IDs reported by NCBI/pubmed.
+    """
+    aliases = ['pubmed-update-repositories']
+    _settings = {
+            'ncbi-db' : 'pubmed'
+            }
+
+    def process(self):
+        for soup in self.yield_soup():
+            for article_soup in soup.find_all("PubmedArticle"):
+                doi = self.doi(article_soup)
+                article = Article.from_doi(doi)
+                external_ids = self.article_ids(article_soup)
+
+                for id_type, id_value in external_ids:
+                    info = pubmed_external_ids[id_type]
+                    if info is None:
+                        continue
+
+                    Instance.create(
+                            article=article,
+                            repository=self.create_repository(info['name']),
+                            free_to_read=info['free_to_read'],
+                            identifier=id_value,
+                            source=self.db_source(),
+                            log=self.db_source())
+
+                    log_args = (id_value, info['name'], article.doi, self.db_source())
+                    article.log = article.log + "\nAdded external id %s for %s based on DOI %s via %s" % log_args
+
+                article.save()
+
+class NCBIArticles(ArticleScraper, NCBI):
+    """
+    Base class for article scrapers querying NCBI databases (such as pubmed).
+    """
+    aliases = ['ncbiarticles']
+    _settings = {
+            "search" : ("Search query to include.", None),
+            'cache-expires' : None
+            }
+
+    def scrape_period(self, start_date, end_date):
+        self.search_and_fetch(self.setting('search'), start_date, end_date)
+
+class Pubmed(NCBIArticles):
     """
     Creates a single ArticleList and individual Article objects for all
     articles returned from pubmed matching the [required] search query.
@@ -159,27 +326,36 @@ class Pubmed(NCBI):
             }
 
     def purge_period(self, start_date):
-        ArticleList.delete().where(ArticleList.name == self.article_list_name(start_date)).execute()
-        Article.delete().where(Article.period == start_date.strftime("%Y-%m")).execute()
+        article_list_name = self.article_list_name(start_date)
+        ArticleList.delete().where(
+                (ArticleList.name == article_list_name) &
+                (ArticleList.source == self.db_source())
+                ).execute()
+        Article.delete().where(
+                (Article.period == start_date.strftime("%Y-%m")) &
+                (Article.source == self.db_source())
+                ).execute()
 
     def article_list_name(self, start_date):
-        list_args = (self.setting('search'), start_date.strftime("%Y-%m"))
-        return "pubmed search: %s %s" % list_args
+        args = (self.setting('search'), start_date.strftime("%Y-%m"))
+        return "pubmed search: '%s' %s" % args
 
     def is_period_stored(self, start_date):
+        article_list_name = self.article_list_name(start_date)
         try:
-            ArticleList.get(ArticleList.name == self.article_list_name(start_date))
+            ArticleList.get(
+                (ArticleList.name == article_list_name) &
+                (ArticleList.source == self.db_source())
+                )
             return True
         except ArticleList.DoesNotExist:
             return False
 
-    def create_repository(self, name):
-        return Repository.create_or_update_by_name({"name" : name, "source" : self.db_source()})
-
     def create_article_list(self, start_date):
         return ArticleList.create(
                 name = self.article_list_name(start_date),
-                source = self.db_source())
+                source = self.db_source(),
+                log = self.db_source())
 
     def process_period(self, start_date, end_date):
         nihm_repository = self.create_repository(nihm_name)
@@ -189,6 +365,8 @@ class Pubmed(NCBI):
         article_list = self.create_article_list(start_date)
 
         cache_dir = self.period_cache_dir(start_date)
+
+        # TODO convert this to BeautifulSoup instead of etree
 
         for filename in os.listdir(cache_dir):
             filepath = os.path.join(cache_dir, filename)
@@ -213,11 +391,14 @@ class Pubmed(NCBI):
                     else:
                         issn = issn_entry.text
 
-                    journal = Journal.create_or_update_by_issn({
+                    journal = Journal.update_or_create_by_issn({
                         'issn' : issn,
                         'title' : journal_title,
-                        'source' : self.db_source()
-                        })
+                        'source' : self.db_source(),
+                        'log' : self.db_source()
+                        },
+                        "Updated by %s using issn" % self.db_source()
+                        )
 
                     # Parse article info
                     title = article_entry.findtext("ArticleTitle")
@@ -257,33 +438,36 @@ class Pubmed(NCBI):
 
                     article = Article.create(
                             title = title,
-                            source = self.db_source(),
                             doi = doi,
                             journal = journal,
                             period = start_date.strftime("%Y-%m"),
                             date_published = date_published,
-                            )
+                            source = self.db_source(),
+                            log = self.db_source())
 
                     if nihm_id is not None:
                         Instance.create(
                                 article=article,
                                 repository=nihm_repository,
                                 identifier=nihm_id,
-                                source=self.db_source())
+                                source=self.db_source(),
+                                log=self.db_source())
 
                     if pmc_id is not None:
                         Instance.create(
                                 article=article,
                                 repository=pmc_repository,
                                 identifier=pmc_id,
-                                source=self.db_source())
+                                source=self.db_source(),
+                                log=self.db_source())
 
                     if pubmed_id is not None:
                         Instance.create(
                                 article=article,
                                 repository=pubmed_repository,
                                 identifier=pubmed_id,
-                                source=self.db_source())
+                                source=self.db_source(),
+                                log=self.db_source())
 
                     article_list.add_article(article, self.db_source())
 

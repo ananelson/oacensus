@@ -1,4 +1,3 @@
-from datetime import date
 from datetime import datetime
 from oacensus.models import Article
 from oacensus.models import ArticleList
@@ -8,6 +7,31 @@ from tests.utils import setup_db
 from oacensus.models import delete_all
 
 setup_db()
+
+def test_pubmeddoi_scraper():
+    delete_all()
+
+    dois = [
+      "10.1126/science.1165395",
+      "10.1371/journal.pbio.1001417",
+      "10.1063/1.4818888",
+      "10.1042/BST20130088"
+    ]
+
+    doilist = Scraper.create_instance("doilist")
+    doilist.update_settings({
+        "doi-list" : dois,
+        "log" : doilist.setting("source")})
+    doilist.run()
+
+    article = Article.get(Article.doi == dois[3])
+    assert article.instances.count() == 0
+
+    pubmed = Scraper.create_instance('pubmed-update-repositories')
+    pubmed.run()
+
+    assert article.instances.count() == 2
+
 
 def test_pubmed_scraper():
     delete_all()
@@ -26,14 +50,14 @@ def test_pubmed_scraper():
     for article in jan_list.articles():
         assert article.period == "2008-01"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-02-01"
 
     feb_list = article_lists[1]
     assert len(feb_list) == 2
     for article in feb_list.articles():
         assert article.period == "2008-02"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-02-01"
 
     assert len(article_lists[2]) == 0
     assert len(article_lists[3]) == 0
@@ -43,7 +67,7 @@ def test_pubmed_scraper():
     for article in may_list.articles():
         assert article.period == "2008-05"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-05-16"
 
     assert len(article_lists[5]) == 0
     assert len(article_lists[6]) == 0
@@ -54,28 +78,28 @@ def test_pubmed_scraper():
     for article in sep_list.articles():
         assert article.period == "2008-09"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-09-12"
 
     oct_list = article_lists[9]
     assert len(oct_list) == 1
     for article in oct_list.articles():
         assert article.period == "2008-10"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-10-17"
 
     nov_list = article_lists[10]
     assert len(nov_list) == 1
     for article in nov_list.articles():
         assert article.period == "2008-11"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-12-12"
 
     dec_list = article_lists[11]
     assert len(dec_list) == 1
     for article in dec_list.articles():
         assert article.period == "2008-12"
         assert article.title
-        assert isinstance(article.date_published, date)
+        assert article.date_published == "2008-12-12"
 
     # Make another scraper over a longer time period.
     pubmed2 = Scraper.create_instance('pubmed')
@@ -122,7 +146,7 @@ def test_pubmed_single_article():
     article = article_list.articles()[0]
 
     assert article.title == "Genomic loss of microRNA-101 leads to overexpression of histone methyltransferase EZH2 in cancer."
-    assert article.date_published == date(2008, 12, 12)
+    assert article.date_published == "2008-12-12"
     assert article.source == 'pubmed'
     assert article.period == '2008-12'
     assert article.journal.title == "Science (New York, N.Y.)"

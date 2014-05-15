@@ -14,7 +14,7 @@ defaults = {
     'config' : 'oacensus.yaml',
     'dbfile' : 'oacensus.sqlite3',
     'profile' : False,
-    'progress' : False,
+    'progress' : True,
     'reports' : '',
     'workdir' : '.oacensus/work/'
 }

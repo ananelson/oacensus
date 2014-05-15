@@ -1,7 +1,5 @@
 from oacensus.models import Article
-from oacensus.models import ArticleList
-from oacensus.models import JournalList
-from oacensus.models import Publisher
+from oacensus.models import Journal
 from oacensus.scraper import JournalScraper
 from oacensus.scraper import Scraper
 from oacensus.utils import parse_crossref_coins
@@ -17,8 +15,9 @@ class CrossrefArticles(Scraper):
     """
     Uses crossref API to look up article metadata based on DOI.
 
-    Currently this method updates the canonical journal title and the
-    publication date for each article.
+    This method standardizes the journal title if available, and provides a
+    publication date for each article. This is the limit of the data available
+    at present.
     """
     aliases = ['crossref']
 
@@ -64,7 +63,6 @@ class CrossrefArticles(Scraper):
                     article.log += "\nAdded date_published %s using %s." % (date_published, self.db_source())
                     article.save()
 
-        # We don't create any new records
         self.create_dummy_db_entry()
 
 
@@ -75,7 +73,7 @@ class CrossrefJournals(JournalScraper):
     aliases = ['crossrefjournals']
 
     _settings = {
-            'add-new-journals' : True,
+            # http://ftp.crossref.org/titlelist/titleFile.csv
             'csv-url' : ("URL to download CSV file.", "http://www.crossref.org/titlelist/titleFile.csv"),
             'encoding' : 'utf-8',
             'data-file' : ("File to save data under.", "crossref.csv")
@@ -90,8 +88,7 @@ class CrossrefJournals(JournalScraper):
         crossref_data = os.path.join(self.cache_dir(), self.setting('data-file'))
         limit = self.setting('limit')
 
-        crossref_list = JournalList.create(name = "Crossref Journals", source = self.alias)
-        print "cross ref list", crossref_list
+        crossref_list = self.create_journal_list()
 
         with open(crossref_data, 'rb') as f:
             crossref_reader = csv.DictReader(f)
@@ -99,6 +96,8 @@ class CrossrefJournals(JournalScraper):
             for i, row in enumerate(crossref_reader):
                 if limit is not None and i >= limit:
                     break
+                if i % 500 == 0:
+                    self.print_progress("    parsing crossref journal csv row %s" % (i+1))
 
                 raw_issn = row['issn|issn2']
                 if "|" in raw_issn:
@@ -113,11 +112,25 @@ class CrossrefJournals(JournalScraper):
                     return text.replace("\\", "").replace("\"", "")
 
                 args = {
+                        'issn' : issn,
                         'title' : clean_title(row['JournalTitle']),
                         'doi' : row['doi'],
-                        'publisher' : Publisher.find_or_create_by_name(row['Publisher'], self.alias)
+                        'publisher' : self.create_publisher(row['Publisher']),
+                        'source' : self.db_source(),
+                        'log' : self.db_source()
                         }
 
-                self.create_or_modify_journal(issn, args, crossref_list)
+                update_fields = set(args.keys()).difference(Journal.update_skip_fields())
+                update_args = (", ".join(update_fields), self.db_source())
+
+                try:
+                    Journal.get(Journal.issn == issn)
+                    update_msg = "\nUpdating fields %s by matched issn via %s." % update_args
+                    journal = Journal.update_or_create_by_issn(args, update_msg)
+                except Journal.DoesNotExist:
+                    update_msg = "\nUpdating fields %s by matched name via %s." % update_args
+                    journal = Journal.update_or_create_by_title(args, update_msg)
+
+                crossref_list.add_journal(journal, self.db_source())
 
         return crossref_list

@@ -1,5 +1,4 @@
 from oacensus.scraper import Scraper
-import datetime
 
 from tests.utils import setup_db
 setup_db()
@@ -27,14 +26,15 @@ def test_scrape():
     assert article_list.source == source
 
     article = article_list.articles()[0]
-    assert article.date_published == datetime.date(2008,1,1)
+    assert article.date_published == "2008"
     assert article.journal.title == "Logical Methods in Computer Science"
     assert article.journal.issn == "1860-5974"
     assert article.source == source
     assert article.journal.source == source
 
     article = article_list.articles()[1]
-    assert article.date_published == datetime.date(2008,3,1)
+    assert article.date_published == "2008-03"
 
     article = article_list.articles()[10]
-    assert article.date_published == datetime.date(2009,1,12)
+    print article.date_published
+    assert article.date_published == "2009-01-12"

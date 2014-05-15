@@ -2,15 +2,9 @@ from cashew import Plugin, PluginMeta
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY
-from oacensus.models import Article
 from oacensus.models import ArticleList
-from oacensus.models import ArticleListMembership
-from oacensus.models import Instance
-from oacensus.models import Journal
 from oacensus.models import JournalList
-from oacensus.models import JournalListMembership
 from oacensus.models import Publisher
-from oacensus.models import Rating
 from oacensus.models import model_classes
 from oacensus.utils import defaults
 from oacensus.utils import relativedelta_units
@@ -21,6 +15,7 @@ import os
 import os.path
 import shutil
 import sys
+from oacensus.db import db
 
 UTF8Writer = codecs.getwriter('utf8')
 sys.stdout = UTF8Writer(sys.stdout)
@@ -32,8 +27,8 @@ class Scraper(Plugin):
     __metaclass__ = PluginMeta
 
     _settings = {
-            'cache-expires' : ("Number of units after which to expire cache files.", None),
-            'cache-expires-units' : ("Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds", "days"),
+            'cache-expires' : ("Number of units after which to expire cache files.", 3),
+            'cache-expires-units' : ("Unit of time for cache-expires. Options are: years, months, weeks, days, hours, minutes, seconds, microseconds", "weeks"),
             'encoding' : ("Which encoding to use. Can be 'chardet'.", None),
             'no-hash-settings' : ("Settings to exclude from hash calculations.", [])
             }
@@ -107,15 +102,8 @@ class Scraper(Plugin):
             self.print_progress("  data is already stored")
         else:
             self.print_progress("  calling process method...")
-            try:
+            with db.transaction():
                 return self.process()
-            except ArticleScraperException:
-                # don't need to clean up db here, it's already done in
-                # ArticleScraper for the affected period
-                raise
-            except Exception:
-                self.remove_stored_data()
-                raise
 
     # Cache and Work Dirs
 
@@ -310,16 +298,9 @@ class ArticleScraper(Scraper):
             if not self.is_period_stored(start_date):
                 assert self.is_period_cached(start_date)
                 assert not self.is_period_stored(start_date)
-                try:
+                with db.transaction():
                     article_list = self.process_period(start_date, end_date)
                     lists.append(article_list)
-                except Exception as e:
-                    print "An error has occurred while processing period %s, cleaning up DB so you can try again later" % start_date
-                    self.purge_period(start_date)
-                    assert not self.is_period_stored(start_date)
-                    raise ArticleScraperException(str(e))
-            assert self.is_period_stored(start_date)
-
         return lists
 
 class JournalScraper(Scraper):
@@ -327,34 +308,20 @@ class JournalScraper(Scraper):
     Scrapers which generate or add metadata to journals.
     """
     _settings = {
-            "add-new-journals" : ("Whether to create new Journal instances if one doesn't already exist.", False),
-            "update-journal-fields" : ("Whitelist of fields which should be applied when updating an existing journal.", []),
+            'list-name' : ("Name to give to journal list.", "Crossref Journals"),
             "limit" : ("Limit of journals to process (for testing/dev)", None)
             }
 
-    def create_or_modify_journal(self, issn, args, journal_list=None):
-        journal = Journal.by_issn(issn)
-        if journal is None and self.setting('add-new-journals'):
-            journal = self.create_new_journal(issn, args)
-            self.print_progress("Created new journal: %s" % journal)
-        elif journal is not None:
-            journal = self.modify_existing_journal(journal, issn, args)
-            self.print_progress("Modified existing journal: %s" % journal)
+    def create_journal_list(self):
+        return JournalList.create(
+                name = self.setting('list-name'),
+                source = self.db_source(),
+                log = self.db_source())
 
-        if journal_list is not None and journal is not None:
-            journal_list.add_journal(journal, self.safe_setting('source', self.db_source()))
-
-        return journal
-
-    def create_new_journal(self, issn, args):
-        args['issn'] = issn
-        args['source'] = self.db_source()
-        return Journal.create(**args)
-
-    def modify_existing_journal(self, journal, issn, args):
-        update_journal_fields = self.setting('update-journal-fields')
-        for k, v in args.iteritems():
-            if k in update_journal_fields:
-                setattr(journal, k, v)
-        journal.save()
-        return journal
+    def create_publisher(self, name):
+        args = {
+                'name' : name,
+                'source' : self.db_source(),
+                'log' : self.db_source()
+                }
+        return Publisher.find_or_create_by_name(args)

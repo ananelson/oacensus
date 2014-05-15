@@ -1,6 +1,10 @@
 from peewee import *
 from oacensus.db import db
 
+import logging
+logger = logging.getLogger('peewee')
+logger.setLevel(logging.WARN)
+
 class ModelBase(Model):
     source = CharField(help_text="Which scraper populated this information?")
     log = CharField(help_text="Messages should indicate all sources which touched this record.")
@@ -24,6 +28,10 @@ class ModelBase(Model):
         database = db
 
     @classmethod
+    def update_skip_fields(klass):
+        return ('source', 'log')
+
+    @classmethod
     def delete_all_from_source(klass, source):
         return klass.delete().where(klass.source == source).execute()
 
@@ -44,13 +52,14 @@ class ModelBase(Model):
             return klass.create(**args)
 
     @classmethod
-    def update_or_create_by_name(klass, args):
+    def update_or_create_by_name(klass, args, log_if_update):
         name = args['name']
         try:
             item = klass.get(klass.name == name)
             for k, v in args.iteritems():
-                if k != 'source':
+                if k not in klass.update_skip_fields():
                     setattr(item, k, v)
+            item.log += log_if_update
             item.save()
             return item
         except klass.DoesNotExist:
@@ -65,13 +74,14 @@ class ModelBase(Model):
             return klass.create(**args)
 
     @classmethod
-    def update_or_create_by_title(klass, args):
+    def update_or_create_by_title(klass, args, log_if_update):
         title = args['title']
         try:
             item = klass.get(klass.title == title)
             for k, v in args.iteritems():
-                if k != 'source':
+                if k not in klass.update_skip_fields():
                     setattr(item, k, v)
+            item.log += log_if_update
             item.save()
             return item
         except klass.DoesNotExist:
@@ -146,13 +156,14 @@ class Journal(ModelBase):
             return klass.create(**args)
 
     @classmethod
-    def update_or_create_by_issn(klass, args):
+    def update_or_create_by_issn(klass, args, log_if_update):
         issn = args['issn']
         try:
             journal = klass.get(klass.issn == issn)
             for k, v in args.iteritems():
-                if k != 'source':
+                if k not in klass.update_skip_fields():
                     setattr(journal, k, v)
+            journal.log += log_if_update
             journal.save()
         except Journal.DoesNotExist:
             journal = Journal.create(**args)
@@ -215,6 +226,15 @@ class Article(ModelBase):
         """
         return self.journal.licenses() + self.instance_licenses()
 
+    def license_name(self):
+        licenses = self.licenses()
+        if len(licenses) == 0:
+            return None
+        elif len(licenses) == 1:
+            return licenses[0].title
+        else:
+            return licenses[0].title + "..."
+
     def has_license(self):
         return len(self.licenses()) > 0
 
@@ -222,6 +242,13 @@ class Article(ModelBase):
         article_open_licenses = [license for license in self.licenses() 
                 if (open_licenses is None) or (license in open_licenses)]
         return len(article_open_licenses) > 0
+
+    @classmethod
+    def from_doi(cls, doi):
+        """
+        Do a case-insensitive search for DOIs.
+        """
+        return Article.get((Article.doi == doi) | (Article.doi == doi.upper()))
 
     @classmethod
     def create_or_update_by_doi(cls, args):
@@ -246,17 +273,6 @@ class Repository(ModelBase):
 
     def __unicode__(self):
         return u'{0}'.format(self.name)
-
-    @classmethod
-    def create_or_update_by_name(cls, args):
-        try:
-            repo = cls.get(cls.name == args['name'])
-            for k, v in args.iteritems():
-                setattr(repo, k, v)
-            repo.save()
-        except Repository.DoesNotExist:
-            repo = Repository.create(**args)
-        return repo
 
 class OpenMetaCommon(ModelBase):
     "Common fields shared by Rating and Instance tables."
@@ -317,6 +333,7 @@ class JournalList(ModelBase):
         JournalListMembership(
             journal_list = self,
             source = source,
+            log = source,
             journal = journal
         ).save()
 

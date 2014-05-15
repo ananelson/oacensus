@@ -1,1 +1,1 @@
-oacensus run --progress --reports excel
+oacensus run --progress --reports "openness-excel"

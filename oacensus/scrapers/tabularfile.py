@@ -66,14 +66,14 @@ class TabularFile(ArticleScraper):
 
         if journal_args.has_key('issn'):
             if self.setting('update-journal'):
-                journal = Journal.find_or_create_by_issn(journal_args)
+                journal = Journal.update_or_create_by_issn(journal_args, "\nUpdating from %s" % self.db_source())
             else:
-                journal = Journal.update_or_create_by_issn(journal_args)
+                journal = Journal.find_or_create_by_issn(journal_args)
         elif journal_args.has_key('title'):
             if self.setting('update-journal'):
-                journal = Journal.find_or_create_by_title(journal_args)
+                journal = Journal.update_or_create_by_title(journal_args, "\nUpdating from %s" % self.db_source())
             else:
-                journal = Journal.update_or_create_by_title(journal_args)
+                journal = Journal.find_or_create_by_title(journal_args)
         else:
             journal = None
 

@@ -7,6 +7,10 @@ import os
 import requests
 import datetime
 
+
+# TODO merge this with crossref or just make people use crossref separately?
+
+
 class DOIList(ArticleScraper):
     """
     Reads a list of DOIs from an external source. Uses crossref (currently) to retrieve metadata.
@@ -45,7 +49,7 @@ class DOIList(ArticleScraper):
         with open(data_file, 'rb') as f:
             DOIs = json.load(f)
 
-        article_list = ArticleList.create(name=self.setting('list-name'), source=self.setting('source'))
+        article_list = ArticleList.create(name=self.setting('list-name'), source=self.db_source(), log=self.db_source())
 
         for doi in DOIs:
             response = requests.get(self.setting('base-url'),
@@ -73,9 +77,10 @@ class DOIList(ArticleScraper):
                         period = self.setting('period'),
                         doi = doi,
                         date_published = datetime.date(year, 1, 1),
-                        source = self.setting('source')
+                        source = self.db_source(),
+                        log = self.db_source()
                         )
 
-                article_list.add_article(article)
+                article_list.add_article(article, self.db_source())
 
         return article_list
