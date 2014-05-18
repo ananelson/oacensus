@@ -49,20 +49,31 @@ class OAG(Scraper):
             response = requests.post(api_url, data = json.dumps(dois))
             oag_response = json.loads(response.text)['results']
 
-            for i, article in enumerate(articles):
-                oag_info = oag_response[i]
+            oag_response_map = dict((v['identifier'][0]['id'], v) for v in oag_response)
 
-                if not oag_info:
-                    print "  no info returned for", article
-                    continue
+            for article in articles:
+                oag_info = oag_response_map[article.doi]
 
                 for license_info in oag_info['license']:
-                    if license_info['open_access']:
-                        name = license_info['title']
-                        license = License.find_license(name)
+
+                    if license_info['type'] == "failed-to-obtain-license":
+                        article.log += "\nOAG attempted but failed to obtain license information."
+
+                    elif license_info['type'] == "free-to-read":
+                        Instance.create(
+                                article=article,
+                                repository=repository,
+                                free_to_read = True,
+                                source=self.db_source(),
+                                log=license_info['provenance']['description'])
+
+                    else:
+                        alias = license_info['type']
+                        license = License.find_license(alias)
                         Instance.create(
                                 article=article,
                                 repository=repository,
                                 license=license,
+                                free_to_read = True,
                                 source=self.db_source(),
                                 log=license_info['provenance']['description'])
