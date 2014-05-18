@@ -29,37 +29,14 @@ contains some background information as to how Docker is being used.
 
 {% set f = "docker/run-docker.sh" %}
 
-The `{{ f }}` script builds and launches two Docker images.
-
-The first image creates a (semi-)persistent cache which we'll use to store
-downloaded files as we run OACensus. By making this a separate volume, it's
-easy to preserve the cache even if we need to destroy and recreate the
-container we are working in. This part of the script builds the new container
-and, if it isn't already active, it mounts it:
-
-{{ d[f + '|idio']['make-cache'] }}
-
-The Dockerfile for the cache doesn't need to do much, it just needs to specify
-a lightweight base image and define where to mount volumes:
-
-----
-{{ d['docker/Dockerfile-cache'] }}
-----
-
-The next part of the script builds and then runs the container we will work in:
+The `{{ f }}` script builds and launches the Docker image.
 
 {{ d['docker/run-docker.sh|idio']['make-container'] }}
 
-It mounts the persistent cache volume we just created, and it also mounts your
-local working checkout of the oacensus repository. You'll need to specify the
-location in the script, the default value is:
+It also mounts your local working checkout of the oacensus repository. You'll
+need to specify the location in the script, the default value is:
 
 {{ d['docker/run-docker.sh|idio']['oacensus-dir'] }}
-
-Again, please refer to 
-http://blog.ananelson.com/2014/03/docker-isolated-and-reproducible/[this blog post]
-to understand why this configuration was chosen. Feel free to set up whatever
-configuration works best for you, this is just one way to do it.
 
 The Dockerfile begins by defining the base image:
 
@@ -103,9 +80,9 @@ Install scipy, numpy and matplotlib for reporting:
 
 {{ d['docker/Dockerfile|idio']['scipy'] }}
 
-Install nose for running tests:
+Install Python packages for development:
 
-{{ d['docker/Dockerfile|idio']['nose'] }}
+{{ d['docker/Dockerfile|idio']['python-dev-utils'] }}
 
 Install Ruby and asciidoctor for compiling documentation:
 
