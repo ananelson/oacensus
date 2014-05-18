@@ -227,7 +227,7 @@ class Article(ModelBase):
     def licenses_str(self):
         s = []
         for lic in self.journal.licenses():
-            s.append("Journal %s license: %s" % (self.journal.name, lic))
+            s.append("Journal %s license: %s" % (self.journal.title, lic))
 
         for lic in self.instance_licenses():
             s.append("Instance license: %s" % lic)

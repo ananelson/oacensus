@@ -1,4 +1,5 @@
 from oacensus.models import License
+from oacensus.models import Journal
 from oacensus.models import Rating
 from oacensus.models import Publisher
 from oacensus.scraper import JournalScraper
@@ -15,8 +16,6 @@ class DoajJournals(JournalScraper):
 
     _settings = {
             "add-new-journals" : True,
-            "cache-expires" : 90,
-            "cache-expires-units" : "days",
             "encoding" : "utf-8",
             "csv-url" : ("Base url for accessing DOAJ.", "http://www.doaj.org/csv"),
             'data-file' : ("File to save data under.", "doaj.csv")
@@ -46,18 +45,29 @@ class DoajJournals(JournalScraper):
                 else:
                     license = None
 
-                publisher = Publisher.find_or_create_by_name(row['Publisher'], self.alias)
+                publisher = Publisher.find_or_create_by_name({
+                    "name" : row['Publisher'],
+                    "source" : self.db_source(),
+                    "log" : "Source: %s" % self.db_source()
+                    })
 
                 args = {
+                        'issn' : issn,
                         'title' : row['Title'],
                         'url' : row['Identifier'],
-                        'publisher' : publisher
+                        'publisher' : publisher,
+                        'source' : self.db_source(),
+                        'log' : "Source: %s" % self.db_source()
                     }
-                journal = self.create_or_modify_journal(issn, args)
+
+                journal = Journal.update_or_create_by_issn(
+                        args,
+                        "\nUpdating journal from %s" % self.db_source())
 
                 Rating.create(
                         journal = journal,
                         free_to_read = True,
                         license = license,
-                        source = self.alias
+                        source = self.db_source(),
+                        log = "\nAdding rating from %s" % self.db_source()
                         )

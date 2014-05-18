@@ -65,7 +65,7 @@ class OAG(Scraper):
                                 repository=repository,
                                 free_to_read = True,
                                 source=self.db_source(),
-                                log=license_info['provenance']['description'])
+                                log="OAG Free To Read only: %s" % license_info['provenance']['description'])
 
                     else:
                         alias = license_info['type']
