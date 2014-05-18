@@ -1,97 +1,38 @@
 from oacensus.commands import defaults
 from oacensus.scraper import Scraper
-from datetime import date
-import re
-from nose.exc import SkipTest
+from tests.utils import setup_db
 
-TEST_PROJECT_ID = "7ABA7C67-FF06-4655-BBED-A0186A93C797"
-TEST_GRANT_REF = "BBS/E/C/00005040"
-TEST_ORG_ID = "B1F0E8FE-FE3C-49ED-9C96-1ED75312A8A0"
-TEST_FUNDER = "AHRC"
+setup_db()
 
-gtr_id_regex = re.compile('([A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12})')
+project_id = "7ABA7C67-FF06-4655-BBED-A0186A93C797"
+grant_ref = "BBS/E/C/00005040"
+org_id = "F9F1D136-12E3-4BE4-9668-0C9BC4A7C1BF"
 
-raise SkipTest()
+def test_search_ftr_by_grant_id():
+    scraper = Scraper.create_instance('gtr', defaults)
+    settings = {'search_type' : 'grant', 'search' : grant_ref}
+    scraper.update_settings(settings)
+    article_list = scraper.run()
+    assert len(article_list) > 5
 
-def test_article_from_project_id():
-    gtr = Scraper.create_instance('gtr', defaults)
+def test_search_ftr_by_funder():
+    scraper = Scraper.create_instance('gtr', defaults)
+    settings = {'search_type' : 'funder', 'search' : 'AHRC', 'limit' : 50}
+    scraper.update_settings(settings)
+    article_list = scraper.run()
+    assert len(article_list) > 40
 
-    article_list = gtr.fetch_articles_for_project(TEST_PROJECT_ID)
+def test_search_ftr_by_project():
+    scraper = Scraper.create_instance('gtr', defaults)
+    settings = {'search_type' : 'project', 'search' : project_id}
+    scraper.update_settings(settings)
+    article_list = scraper.run()
     assert len(article_list) > 4
 
-def test_grant_id_from_ref():
-    gtr = Scraper.create_instance('gtr', defaults)
-    id = gtr.get_project_id_from_grant_code(TEST_GRANT_REF)
-
-    assert id == TEST_PROJECT_ID
-
-
-def test_grant_id_from_org_id():
-    gtr = Scraper.create_instance('gtr', defaults)
-    gtr.update_settings({'testing' : True})
-    ids = gtr.get_project_ids_from_org_id(TEST_ORG_ID)
-
-    assert len(ids) > 20
-    test_id = ids[0]
-    assert gtr_id_regex.match(test_id) is not None
-
-def test_projects_ids_from_funder():
-    gtr = Scraper.create_instance('gtr', defaults)
-    gtr.update_settings({'testing' : True})
-    projects = gtr.get_project_ids_from_funder_name(TEST_FUNDER)
-
-    assert len(projects) == 80
-    test_id = projects[0]
-    assert gtr_id_regex.search(test_id)
-
-def test_scraper_funder():
-    raise SkipTest()
-
-    gtr = Scraper.create_instance('gtr', defaults)
-    gtr.update_settings(
-            {
-             'testing' : True,
-             'search-type' : 'council',
-             'search' : 'AHRC'
-             }
-                        )
-    article_list = gtr.run()
-    assert len(article_list.articles()) > 90
-    for article in article_list.articles():
-        assert article.title
-        assert isinstance(article.date_published, date)
-
-def test_scraper_org():
-    raise SkipTest()
-
-    gtr = Scraper.create_instance('gtr', defaults)
-    gtr.update_settings(
-            {
-             'testing' : True,
-             'search-type' : 'organisation',
-             'search' : TEST_ORG_ID
-             }
-                        )
-    article_list = gtr.run()
-    assert len(article_list.articles()) > 1000
-    for article in article_list.articles():
-        assert article.title
-        assert isinstance(article.date_published, date)
-
-def test_scraper_grantref():
-    gtr = Scraper.create_instance('gtr', defaults)
-    gtr.update_settings(
-            {
-             'testing' : True,
-             'search-type' : 'project',
-             'search' : TEST_GRANT_REF
-             }
-                        )
-    article_list = gtr.run()
-    assert len(article_list.articles()) == 5
-    for article in article_list.articles():
-        assert article.title
-        assert isinstance(article.date_published, date)
-
-
+def test_search_ftr_by_organisation():
+    scraper = Scraper.create_instance('gtr', defaults)
+    settings = {'search_type' : 'organisation', 'search' : org_id}
+    scraper.update_settings(settings)
+    article_list = scraper.run()
+    assert len(article_list) > 500
 
