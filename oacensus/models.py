@@ -5,6 +5,26 @@ import logging
 logger = logging.getLogger('peewee')
 logger.setLevel(logging.WARN)
 
+pubmed_external_ids = {
+        'pii' : None,
+        'doi' : None,
+        'oag' : {
+            'name' : 'Open Article Gauge'
+            },
+        'nihm' : {
+            'name' : "National Institutes of Health and Medicine",
+            'free_to_read' : None
+            },
+        'pubmed' : {
+            'name' : "PubMed",
+            'free_to_read' : None
+            },
+        'pmc' : {
+            'name' : "PubMed Central",
+            'free_to_read' : True
+            }
+        }
+
 class ModelBase(Model):
     source = CharField(help_text="Which scraper populated this information?")
     log = CharField(help_text="Messages should indicate all sources which touched this record.")
@@ -184,6 +204,13 @@ class Journal(ModelBase):
     def licenses(self):
         return [rating.license for rating in self.ratings if rating.license != None]
 
+    def in_doaj(self):
+        return self.ratings.where(Rating.source == "doaj").count() > 0
+
+    def doaj_license(self):
+        if self.in_doaj():
+            return self.ratings.where(Rating.source == "doaj")[0].license.title
+
 class Article(ModelBase):
     title = CharField(
         help_text="Title of article.")
@@ -240,6 +267,32 @@ class Article(ModelBase):
             s.append("Repository %s: %s (%s)" % (ins.repository.name, ins, ins.log))
 
         return "\n".join(s)
+
+    def instances_dict(self):
+        return dict((instance.repository.name, instance) for instance in self.instances)
+
+    def instances_license_dict(self):
+        return dict((instance.repository.name, instance.license) for instance in self.instances)
+
+    def oag_license(self):
+        name = pubmed_external_ids['oag']['name']
+        license = self.instances_license_dict().get(name)
+        if license is not None:
+            return license.title
+
+    def pmc_instance(self):
+        name = pubmed_external_ids['pmc']['name']
+        instance = self.instances_dict().get(name)
+        if instance is not None:
+            return instance
+
+    def in_pmc(self):
+        return self.pmc_instance() is not None
+
+    def pmc_id(self):
+        instance = self.pmc_instance()
+        if instance is not None:
+            return instance.identifier
 
     def license_name(self):
         licenses = self.licenses()
@@ -298,6 +351,16 @@ class Repository(ModelBase):
     def __unicode__(self):
         return u'{0}'.format(self.name)
 
+    @classmethod
+    def pubmed_repository(klass, source):
+        pmname = pubmed_external_ids['pubmed']['name']
+        args = {
+                "name" : pmname,
+                "source" : source,
+                "log" : "Created by %s" % source
+                }
+        return Repository.find_or_create_by_name(args)
+
 class OpenMetaCommon(ModelBase):
     "Common fields shared by Rating and Instance tables."
     free_to_read = BooleanField(null=True,
@@ -344,6 +407,15 @@ class Instance(OpenMetaCommon):
             license_alias = self.license.alias
 
         return u"<Instance {0} (id: {2}) in {1} license? {3} ftr? {4}>".format(self.id, self.repository.name, self.identifier, license_alias, self.free_to_read)
+
+    @classmethod
+    def create_pmid(klass, article, pubmed_id, source):
+        return klass.create(
+                article=article,
+                repository=Repository.pubmed_repository(source),
+                source=source,
+                log="Created by %s" % source
+                )
 
 class JournalList(ModelBase):
     name = CharField()

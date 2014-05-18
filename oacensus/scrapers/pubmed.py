@@ -12,26 +12,10 @@ import requests
 import time
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
+from oacensus.models import pubmed_external_ids
 
 # TODO remove these and use pubmed_external_ids
 from oacensus.utils import nihm_name, pmc_name, pubmed_name
-
-pubmed_external_ids = {
-        'pii' : None,
-        'doi' : None,
-        'nihm' : {
-            'name' : "National Institutes of Health and Medicine",
-            'free_to_read' : None
-            },
-        'pubmed' : {
-            'name' : "PubMed",
-            'free_to_read' : None
-            },
-        'pmc' : {
-            'name' : "PubMed Central",
-            'free_to_read' : True
-            }
-        }
 
 class NCBI(Scraper):
     """

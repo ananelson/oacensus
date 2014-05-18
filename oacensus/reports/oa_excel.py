@@ -7,6 +7,9 @@ import inspect
 import os
 import xlwt
 
+# DOI, title, publisher, journal, ISSN, OAG license, In DOAJ, DOAJ license, in PMC, PMCID, licenses str
+
+
 class OAExcel(Report):
     """
     An excel-based openness report.
@@ -19,7 +22,9 @@ class OAExcel(Report):
             "sheet-name" : ("Name of worksheet.", "Openness"),
             'date-format-string' : ( "Excel style date format string.", "D-MMM-YYYY"),
             "fields" : ("Fields to include in report.", [
-                "id", "title", "doi", "journal.title", "publisher.name", "is_free_to_read", "license_name", "license_source", "log", "journal.issn", "licenses_str", "ratings_str"
+                "doi", "title", "publisher.name", "journal.title", "journal.issn",
+                "oag_license", "journal.in_doaj", "journal.doaj_license", "in_pmc", "pmc_id",
+                "is_free_to_read", "licenses_str"
                 ])
             }
 
