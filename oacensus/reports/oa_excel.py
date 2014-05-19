@@ -25,6 +25,7 @@ class OAExcel(Report):
                 "doi", "title", "publisher.name", "journal.title", "journal.issn",
                 "oag_license", "journal.in_doaj", "journal.doaj_license", "in_pmc", "pmc_id",
                 "is_free_to_read", "licenses_str"
+                 , "ratings_str", "journal.log"
                 ])
             }
 
@@ -49,7 +50,7 @@ class OAExcel(Report):
 
         # Write Headers
         for j, k in enumerate(keys):
-            heading = inflection.titleize(k)
+            heading = inflection.titleize(k.replace("_id", "_identifier"))
             ws.write(0, j, heading, bold_style)
 
         for i, article in enumerate(Article.select()):
@@ -57,7 +58,10 @@ class OAExcel(Report):
                 if key.startswith("journal."):
                     value = getattr(article.journal, key.replace("journal.", ""))
                 elif key.startswith("publisher."):
-                    value = getattr(article.journal.publisher, key.replace("publisher.", ""))
+                    if article.journal.publisher is not None:
+                        value = getattr(article.journal.publisher, key.replace("publisher.", ""))
+                    else:
+                        value = None
                 else:
                     value = getattr(article, key)
 

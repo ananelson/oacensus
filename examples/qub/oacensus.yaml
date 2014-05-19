@@ -27,4 +27,7 @@
 # Check pubmed, get external identifiers including PMC (based on article DOI).
 - pubmed-update-repositories
 
+# Look up journal info in DOAJ
+- doaj
+
 # TODO look up license in PMC

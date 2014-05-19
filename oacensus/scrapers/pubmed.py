@@ -116,8 +116,9 @@ class NCBI(Scraper):
         count = int(root.find("Count").text)
         web_env = root.find("WebEnv").text
         query_key = root.find("QueryKey").text
-
-        self.print_progress("  there are %s total articles matching the search" % count)
+        
+        db = self.setting('ncbi-db')
+        self.print_progress("  found %s total articles in %s matching the search" % (count, db))
 
         return (count, web_env, query_key)
 
@@ -208,7 +209,9 @@ class NCBI(Scraper):
     # Parsing Methods (may be pubmed-specific)
 
     def doi(self, soup):
-        return soup.find("ArticleId", IdType="doi").get_text()
+        doi = soup.find("ArticleId", IdType="doi")
+        if doi is not None:
+            return doi.getText()
 
     def article_ids(self, soup):
         for s in soup.ArticleIdList.find_all("ArticleId"):
@@ -236,9 +239,11 @@ class UpdateByDOI(NCBI):
         n_articles = articles_with_dois.count()
         n_batches = n_articles/max_items+1
 
-        for batch in range(n_batches):
-            articles = articles_with_dois.paginate(batch, paginate_by=max_items)
-            term = " OR ".join("%s[AID]" % article.doi for article in articles)
+        for batch in range(n_batches+1):
+            articles = articles_with_dois.paginate(batch, max_items)
+            dois = ["%s[AID]" % article.doi for article in articles]
+            self.print_progress("    about to fetch batch %s of %s (%s articles)" % (batch+1, n_batches+1, len(dois)))
+            term = " OR ".join(dois)
 
             count, web_env, query_key = self.initial_search(term)
 
@@ -265,6 +270,8 @@ class UpdateExternalIdsByDOI(UpdateByDOI):
         for soup in self.yield_soup():
             for article_soup in soup.find_all("PubmedArticle"):
                 doi = self.doi(article_soup)
+                if doi is None:
+                    continue
                 article = Article.from_doi(doi)
                 external_ids = self.article_ids(article_soup)
 

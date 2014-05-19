@@ -11,6 +11,9 @@ import urllib
 import hashlib
 import codecs
 
+modes = ["none", "ifempty", "overwrite"]
+modess = ", ".join(modes)
+
 class CrossrefArticles(Scraper):
     """
     Uses crossref API to look up article metadata based on DOI.
@@ -22,7 +25,8 @@ class CrossrefArticles(Scraper):
     aliases = ['crossref']
 
     _settings = {
-            'base-url' : ("Base url of crossref API", "http://search.labs.crossref.org/dois")
+            'base-url' : ("Base url of crossref API", "http://search.labs.crossref.org/dois"),
+            "pub-date-mode" : ("Mode for applying publication date data, one of %s" % modess, "ifempty")
             }
 
     def article_filename(self, article):
@@ -39,6 +43,9 @@ class CrossrefArticles(Scraper):
                 f.write(response.text)
 
     def process(self):
+        pub_date_mode = self.setting('pub-date-mode')
+        assert pub_date_mode in modes
+
         articles = Article.select().where(~(Article.doi >> None))
         for article in articles:
             fp = os.path.join(self.cache_dir(), self.article_filename(article))
@@ -52,15 +59,27 @@ class CrossrefArticles(Scraper):
                 if "rft.jtitle" in coins:
                     journal_title = coins['rft.jtitle'][0]
                     if journal_title != article.journal.title:
-                        logmsg = "\nChanged journal title from '%s' to '%s' using %s."
+                        logmsg = "\nChanged journal title from '%s' to '%s' (%s)."
                         article.journal.log += logmsg % (article.journal.title, journal_title, self.db_source())
                         article.journal.title = journal_title
                         article.journal.save()
 
                 if "rft.date" in coins:
                     date_published = coins['rft.date'][0]
-                    article.date_published = date_published
-                    article.log += "\nAdded date_published %s using %s." % (date_published, self.db_source())
+
+                    if pub_date_mode == "none":
+                        pass
+                    elif pub_date_mode == "ifempty":
+                        if article.date_published is None:
+                            article.date_published = date_published
+                            article.log += "\nAdded date_published %s (%s)." % (date_published, self.db_source())
+                        else:
+                            article.log += "\nNot overwriting existing date_published with %s value %s" % (self.db_source(), date_published)
+
+                    elif pub_date_mode == "overwrite":
+                        article.date_published = date_published
+                        article.log += "\nUpdated date_published %s (%s)." % (date_published, self.db_source())
+
                     article.save()
 
         self.create_dummy_db_entry()

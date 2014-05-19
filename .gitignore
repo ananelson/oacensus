@@ -12,3 +12,6 @@ openarchives-listing.xml
 docs/*-cache
 build
 dist
+
+examples/*/*.xls
+examples/*/*.sqlite3

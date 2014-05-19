@@ -6,6 +6,7 @@ logger = logging.getLogger('peewee')
 logger.setLevel(logging.WARN)
 
 pubmed_external_ids = {
+        'mid' : None,
         'pii' : None,
         'doi' : None,
         'oag' : {
@@ -209,12 +210,15 @@ class Journal(ModelBase):
 
     def doaj_license(self):
         if self.in_doaj():
-            return self.ratings.where(Rating.source == "doaj")[0].license.title
+            license = self.ratings.where(Rating.source == "doaj")[0].license
+            if license:
+                return license.title
 
 class Article(ModelBase):
     title = CharField(
         help_text="Title of article.")
     doi = CharField(null=True,
+        index=True,
         help_text="Digital object identifier for article.")
     date_published = CharField(null=True,
         help_text="When article was published, in YYYY(-MM(-DD)) format.")
@@ -325,7 +329,8 @@ class Article(ModelBase):
         """
         Do a case-insensitive search for DOIs.
         """
-        return Article.get((Article.doi == doi) | (Article.doi == doi.upper()))
+        if doi is not None:
+            return Article.get((Article.doi == doi) | (Article.doi == doi.upper()))
 
     @classmethod
     def create_or_update_by_doi(cls, args):

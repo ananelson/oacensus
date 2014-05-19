@@ -1,0 +1,23 @@
+# Load standard licenses.
+- licenses
+
+# Get articles from GTR
+- gtr:
+    search-type: organisation
+    search: "F9F1D136-12E3-4BE4-9668-0C9BC4A7C1BF"
+    doi-exceptions: {"http://dx.doi.org/10.?1152/?jn.?00326.?2010" : "10.1152/jn.00326.2010"}
+
+# Get publication date and standardize journal title (based on article DOI).
+- crossref
+
+# Get ISSNs based on journal titles.
+- crossrefjournals
+
+# Get openness information from OAG (based on article DOI).
+- oag
+
+# Check pubmed, get external identifiers including PMC (based on article DOI).
+- pubmed-update-repositories
+
+# Look up journal info in DOAJ
+- doaj

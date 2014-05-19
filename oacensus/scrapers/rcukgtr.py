@@ -1,14 +1,15 @@
-from oacensus.scraper import Scraper
 from oacensus.models import Article
 from oacensus.models import ArticleList
 from oacensus.models import Instance
 from oacensus.models import Journal
 from oacensus.models import Repository
+from oacensus.scraper import Scraper
+import codecs
+import json
 import os
+import re
 import requests
 import time
-import json
-import codecs
 
 search_types = ['person', 'project', 'grant', 'funder', 'organisation']
 
@@ -28,6 +29,9 @@ class GTR(Scraper):
             "pagination-keys" : ("Keys which give pagination information.",  [u'totalPages', u'totalSize', u'page', u'size']),
             "search-type" : ("One of %s" % (", ".join(search_types)), None),
             "search" : ("Term to search for.", None),
+            "doi-regex" : ("Regular expression to extract short DOIs.",
+                "\\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?![\\/\"&\'<>])\\S)+)\\b"),
+            "doi-exceptions" : ("Map of original:clean DOIs not conforming to regex.", None),
             "testing" : ("Reduce number of live API calls for testing purposes", False)
             }
 
@@ -177,6 +181,7 @@ class GTR(Scraper):
                 )
 
     def process(self):
+        doi_regex = re.compile(self.setting('doi-regex'))
         gtr_repository = self.create_gtr_repository()
         article_list = self.create_article_list()
 
@@ -199,19 +204,32 @@ class GTR(Scraper):
                     # print "Skipping", pub.keys()
                     continue
 
-                if pub.get('issn') is not None:
+                issn = pub.get('issn')
+                if issn is not None:
+                    match = re.match("([0-9]{4})(\W)?([0-9X]{4})", issn)
+                    if match is None:
+                        valid_issn = False
+                    else:
+                        groups = match.groups()
+                        valid_issn = "%s-%s" % (groups[0], groups[2])
+                        if valid_issn == "0000-0000":
+                            valid_issn = False
+                else:
+                    valid_issn = False
+
+                if valid_issn:
                     journal = Journal.find_or_create_by_issn({
-                        "issn" : pub['issn'],
+                        "issn" : valid_issn,
                         "title" : pub['journalTitle'],
                         "source" : self.db_source(),
                         "log" : "Created by %s" % self.db_source(),
                         })
-
                 elif pub.get('journalTitle') is not None:
+                    log_args = (self.db_source(), issn)
                     journal = Journal.find_or_create_by_title({
                         "title" : pub['journalTitle'],
                         "source" : self.db_source(),
-                        "log" : "Created by %s" % self.db_source(),
+                        "log" : "Created by %s using journal title because no valid issn was found (issn field %s)" % log_args
                         })
 
                 else:
@@ -224,7 +242,13 @@ class GTR(Scraper):
                     date_published = None
 
                 if pub.get('doi') is not None:
-                    doi = pub['doi'].replace("http://dx.doi.org/", "")
+                    matches = doi_regex.findall(pub['doi'])
+                    if matches:
+                        doi = matches[0].replace("?","").upper()
+                    elif pub['doi'] in self.setting('doi-exceptions'):
+                        doi = self.setting('doi-exceptions')[pub['doi']].upper()
+                    else:
+                        raise Exception("Couldn't find DOI in %s, add entry to doi-exceptions." % pub['doi'])
                 else:
                     doi = None
 

@@ -52,7 +52,12 @@ class OAG(Scraper):
             oag_response_map = dict((v['identifier'][0]['id'], v) for v in oag_response)
 
             for article in articles:
-                oag_info = oag_response_map[article.doi]
+                try:
+                    oag_info = oag_response_map[article.doi]
+                except KeyError:
+                    print "No match for DOI", article.doi,
+                    print "it may be invalid or you may need to try again after OAG has had time to populate this record."
+                    continue
 
                 for license_info in oag_info['license']:
 

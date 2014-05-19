@@ -16,7 +16,7 @@ cc-by-nc-nd:
 cc-by-nc:
     title: Creative Commons Attribution NonCommercial
     url: https://creativecommons.org/licenses/by-nc/4.0
-    aliases: []
+    aliases: [cc-nc]
 
 cc-by-nd:
     title: Creative Commons Attribution NoDerivatives
@@ -26,4 +26,9 @@ cc-by-nd:
 cc-by-nc-sa:
     title: Creative Commons Attribution NonCommercial ShareAlike
     url: https://creativecommons.org/licenses/by-nc-nd-sa/4.0
+    aliases: []
+
+cc-zero:
+    title: No Rights Reserved
+    url: http://creativecommons.org/about/cc0
     aliases: []
