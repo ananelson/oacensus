@@ -287,8 +287,7 @@ class ArticleScraper(Scraper):
         self.print_progress("  calling scrape method...")
         self.scrape()
         self.print_progress("  calling process method...")
-        with db.transaction():
-            return self.process()
+        return self.process()
 
     def scrape(self):
         if self.setting('cache-expires') is not None:
