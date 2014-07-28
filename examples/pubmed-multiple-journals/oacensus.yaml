@@ -1,0 +1,35 @@
+- licenses
+
+- pubmed: {
+    start-period: 2013-01,
+    end-period: 2013-06,
+    journals: [
+        "BMC infectious diseases",
+        "BMC public health",
+        "BMJ open",
+        "Bioinformatics",
+        "Cell host & microbe",
+        "Cell",
+        "Current Biology : CB",
+        "Genes & development",
+        "Genome research",
+        "Journal of virology",
+        "Molecular systems biology",
+        "Nature Neuroscience",
+        "Nature cell biology",
+        "Nature communications",
+        "Nature genetics",
+        "Nature medicine",
+        "Nature",
+        "PLoS genetics",
+        "PLoS neglected tropical diseases",
+        "PeerJ",
+        "Proceedings of the National Academy of Sciences of the United States of America",
+        "Science (New York, N.Y.)",
+        "Scientific reports",
+        "SpringerPlus",
+        "The American journal of tropical medicine and hygiene",
+        "The Journal of infectious diseases",
+        "eLife"
+    ]
+}
