@@ -1,18 +1,19 @@
+from bs4 import BeautifulSoup
 from oacensus.exceptions import APIError
 from oacensus.models import Article
 from oacensus.models import ArticleList
-from oacensus.models import Repository
 from oacensus.models import Instance
 from oacensus.models import Journal
+from oacensus.models import Repository
+from oacensus.models import pubmed_external_ids
 from oacensus.scraper import ArticleScraper
 from oacensus.scraper import Scraper
+import datetime
 import dateutil.parser
 import os
 import requests
 import time
-from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
-from oacensus.models import pubmed_external_ids
 
 # TODO remove these and use pubmed_external_ids
 from oacensus.utils import nihm_name, pmc_name, pubmed_name
@@ -27,7 +28,7 @@ class NCBI(Scraper):
             "ncbi-db" : ("Name of NCBI database to query.", None),
             "datetype" : ("Type of date for period filtering", "pdat"),
             "filepattern" : ("Names of files which hold data in cache.", "data_%04d.xml"),
-            "ret-max" : ("Maximum number of entries to return in any single query.", 10000),
+            "ret-max" : ("Maximum number of entries to return in any single query.", 500),
             "delay" : ("Time in seconds to delay between API requests.", 1),
             "initial-ret-max" : ("Maximum number of entries to return in the initial query.", 5)
         }
@@ -93,18 +94,19 @@ class NCBI(Scraper):
         params = {
                 'term' : search_term,
                 'usehistory' : 'y',
-                'datetype' : self.setting('datetype'),
                 'retMax' : self.setting('initial-ret-max')
                 }
 
         if start_date and end_date:
             params.update({
+                'datetype' : self.setting('datetype'),
                 'mindate' : start_date.strftime("%Y/%m/%d"),
-                'maxdate' : end_date.strftime("%Y/%m/%d") # TODO is this right?
+                'maxdate' : (end_date - datetime.timedelta(days=1)).strftime("%Y/%m/%d") # TODO is this right?
                 })
         elif start_date or end_date:
             raise Exception("Both start and end date must be provided if either is.")
 
+        self.print_progress("  search params being used: %s" % params)
         result = requests.get(self.search_url(), params=self.search_params(params))
 
         root = ET.fromstring(result.text)
@@ -300,11 +302,27 @@ class NCBIArticles(ArticleScraper, NCBI):
     aliases = ['ncbiarticles']
     _settings = {
             "search" : ("Search query to include.", None),
+            "journals" : ("Shortcut to search the provided list of journals. Combined with any additional query using AND.", None),
             'cache-expires' : None
             }
 
+    def search_term(self):
+        journals = self.setting('journals')
+        raw_search = self.setting('search')
+
+        if journals is not None:
+            journal_search_term = "(" + " OR ".join("\"%s\"[Journal]" % journal for journal in journals) + ")"
+            if raw_search is None:
+                search = journal_search_term
+            else:
+                search = "%s AND %s" % (journal_search_term, raw_search)
+        else:
+            search = raw_search
+
+        return search
+
     def scrape_period(self, start_date, end_date):
-        self.search_and_fetch(self.setting('search'), start_date, end_date)
+        self.search_and_fetch(self.search_term(), start_date, end_date)
 
 class Pubmed(NCBIArticles):
     """
@@ -317,19 +335,16 @@ class Pubmed(NCBIArticles):
             }
 
     def purge_period(self, start_date):
-        article_list_name = self.article_list_name(start_date)
-        ArticleList.delete().where(
-                (ArticleList.name == article_list_name) &
-                (ArticleList.source == self.db_source())
-                ).execute()
         Article.delete().where(
                 (Article.period == start_date.strftime("%Y-%m")) &
                 (Article.source == self.db_source())
                 ).execute()
 
     def article_list_name(self, start_date):
-        args = (self.setting('search'), start_date.strftime("%Y-%m"))
-        return "pubmed search: '%s' %s" % args
+        if self.setting('journals') is not None:
+            journal_string = "within %s journals" % len(self.setting('journals'))
+        args = (self.setting('search'), journal_string,  start_date.strftime("%Y-%m"),)
+        return "pubmed search: '%s' %s %s" % args
 
     def is_period_stored(self, start_date):
         article_list_name = self.article_list_name(start_date)
@@ -352,9 +367,6 @@ class Pubmed(NCBIArticles):
         nihm_repository = self.create_repository(nihm_name)
         pmc_repository = self.create_repository(pmc_name)
         pubmed_repository = self.create_repository(pubmed_name)
-
-        article_list = self.create_article_list(start_date)
-
         cache_dir = self.period_cache_dir(start_date)
 
         # TODO convert this to BeautifulSoup instead of etree
@@ -397,12 +409,12 @@ class Pubmed(NCBIArticles):
                     # Parse date info
                     date_published = None
                     journal_pubdate_entry = journal_entry.find("JournalIssue").find("PubDate")
-                    article_date_entry = article_entry.find("ArticleDate")
 
                     if journal_pubdate_entry is not None:
                         date_published = self.parse_date(journal_pubdate_entry)
-                    elif article_date_entry is not None:
-                        date_published = self.parse_date(article_date_entry)
+                    else:
+                        print "  no journal pub date, skipping article", title
+                        continue
 
                     doi_entry = article_entry.find("ELocationID")
 
@@ -459,8 +471,3 @@ class Pubmed(NCBIArticles):
                                 identifier=pubmed_id,
                                 source=self.db_source(),
                                 log=self.db_source())
-
-                    article_list.add_article(article, self.db_source())
-
-        self.print_progress("  %s" % article_list)
-        return article_list
