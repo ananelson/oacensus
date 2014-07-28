@@ -67,8 +67,8 @@ class Scraper(Plugin):
         Dictionary of settings which should be used to construct hash.
         """
         return dict((k, v)
-                for k, v in self.setting_values().iteritems()
-                if not k in self.setting('no-hash-settings'))
+            for k, v in self.setting_values().iteritems()
+            if not k in self.setting('no-hash-settings'))
 
     def hashstring(self, settings):
         """
@@ -280,6 +280,15 @@ class ArticleScraper(Scraper):
     def purge_period(self, start_date):
         "Purge the database records for the period."
         raise NotImplementedError()
+
+    def run(self):
+        print "in run method for article scraper class"
+        self.print_progress(self.cache_dir())
+        self.print_progress("  calling scrape method...")
+        self.scrape()
+        self.print_progress("  calling process method...")
+        with db.transaction():
+            return self.process()
 
     def scrape(self):
         if self.setting('cache-expires') is not None:
