@@ -1,5 +1,5 @@
 ### "base"
-FROM       ubuntu:13.10
+FROM       phusion/baseimage
 MAINTAINER Ana Nelson <ana@ananelson.com>
 
 ### "locale"
@@ -7,49 +7,52 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 
 ### "squid-deb-proxy"
-# Use squid deb proxy to cache ubuntu installs as per
-# https://gist.github.com/dergachev/8441335
-# Comment this out if squid-deb-proxy not configured on host.
-RUN /sbin/ip route | awk '/default/ { print "Acquire::http::Proxy \"http://"$3":8000\";" }' > /etc/apt/apt.conf.d/30proxy
+# Use squid deb proxy (if available on host OS) as per https://gist.github.com/dergachev/8441335
+# Modified by @ananelson to detect squid on host OS and only enable itself if found.
+ENV HOST_IP_FILE /tmp/host-ip.txt
+RUN /sbin/ip route | awk '/default/ { print "http://"$3":8000" }' > $HOST_IP_FILE
+RUN HOST_IP=`cat $HOST_IP_FILE` && curl -s $HOST_IP | grep squid && echo "found squid" && echo "Acquire::http::Proxy \"$HOST_IP\";" > /etc/apt/apt.conf.d/30proxy || echo "no squid"
+
+### "apt-defaults"
+RUN echo "APT::Get::Assume-Yes true;" >> /etc/apt/apt.conf.d/80custom
+RUN echo "APT::Get::Quiet true;" >> /etc/apt/apt.conf.d/80custom
 
 ### "update"
 RUN apt-get update
-RUN apt-get install -y software-properties-common
-RUN apt-get install -y build-essential
+RUN apt-get install software-properties-common
+RUN apt-get install build-essential
 
 ### "utilities"
-RUN apt-get install -y sudo
-RUN apt-get install -y vim
-RUN apt-get install -y ack-grep
+RUN apt-get install sudo vim ack-grep
 
 ### "libraries"
-RUN apt-get install -y zlib1g-dev
-RUN apt-get install -y libffi-dev
-RUN apt-get install -y libssl-dev
+RUN apt-get install zlib1g-dev
+RUN apt-get install libffi-dev
+RUN apt-get install libssl-dev
 
 ### "python"
-RUN apt-get install -y python-dev
-RUN apt-get install -y python-pip
+RUN apt-get install python-dev
+RUN apt-get install python-pip
 
 ### "lxml"
-RUN apt-get install -y libxml2-dev
-RUN apt-get install -y libxslt1-dev
+RUN apt-get install libxml2-dev
+RUN apt-get install libxslt1-dev
 RUN pip install cython
 
 RUN pip install lxml
 
 ### "scipy"
-RUN apt-get install -y python-scipy
-RUN apt-get install -y python-numpy
-RUN apt-get install -y python-matplotlib
+RUN apt-get install python-scipy
+RUN apt-get install python-numpy
+RUN apt-get install python-matplotlib
 
 ### "python-dev-utils"
 RUN pip install nose
 RUN pip install pyflakes
 
 ### "asciidoctor"
-RUN apt-get install -y ruby2.0-dev
-RUN apt-get install -y ruby2.0
+RUN apt-get install ruby1.9.1
+RUN apt-get install ruby1.9.1-dev
 RUN gem install asciidoctor
 RUN gem install pygments.rb
 
@@ -57,9 +60,11 @@ RUN gem install pygments.rb
 RUN pip install dexy
 
 ### "create-user"
-RUN useradd -m -p $(perl -e'print crypt("foobarbaz", "aa")') oacensus
+RUN useradd -m oacensus
+RUN echo "oacensus:foobarbaz" | chpasswd
 RUN adduser oacensus sudo
 
-### "switch-to-user"
-USER oacensus
+### "activate-user"
 ENV HOME /home/oacensus
+USER oacensus
+WORKDIR /home/oacensus
